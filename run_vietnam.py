@@ -1,3 +1,7 @@
+'''
+Run Vietnam
+'''
+
 import covasim as cv
 import sciris as sc
 import pylab as pl
@@ -10,16 +14,14 @@ def make_sim():
     n_agents = 200e3
     pop_scale = total_pop/n_agents
 
-    option = 'B' # set the calibration option: A or B
+    option = 'B' # set the calibration option: A or B; A is a better fit but B is more believable
 
     # Calibration parameters
-    beta = {'A':0.012, 'B':0.011}[option]
-
     pars = {'pop_size': n_agents,
-            'pop_infected': {'A':20, 'B':40}[option],
+            'pop_infected': {'A':20, 'B':30}[option],
             'pop_scale': pop_scale,
             'rand_seed': {'A':111, 'B':1}[option],
-            'beta': beta,
+            'beta': 0.012,
             'start_day': start_day,
             'end_day': end_day,
             'verbose': .1,
@@ -30,7 +32,7 @@ def make_sim():
             'pop_type': 'hybrid',
             'n_imports': {'dist':'poisson','par1':5.0},
             'age_imports': [50,80],
-            'rel_death_prob': {'A':3.0, 'B':1.5}[option], # Calibration parameter due to hospital outbreak
+            'rel_death_prob': {'A':3.0, 'B':1.0}[option], # Calibration parameter due to hospital outbreak
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
@@ -51,7 +53,8 @@ def make_sim():
         cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), symp_test=1.0, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
         # cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-15'), sim.day('2020-07-20')], 'vals': [5, 0]}}, do_plot=False)
-        cv.change_beta(['2020-07-20', '2020-07-25'], [0.7, 0.3])
+        {'A':cv.change_beta(['2020-07-20', '2020-07-25'], [0.7, 0.3]),
+        'B':cv.change_beta(['2020-07-25'], [0.25])}[option]
         ]
 
 
@@ -72,6 +75,7 @@ def make_sim():
 # Run
 
 T = sc.tic()
+cv.check_save_version()
 
 # Settings
 domulti = False
