@@ -1,7 +1,6 @@
 import covasim as cv
-import pandas as pd
 import sciris as sc
-import numpy as np
+import pylab as pl
 
 def make_sim():
 
@@ -12,7 +11,7 @@ def make_sim():
     pop_scale = total_pop/n_agents
 
     # Calibration parameters
-    beta = 0.010
+    beta = 0.012
 
     pars = {'pop_size': n_agents,
             'pop_infected': 20,
@@ -28,7 +27,8 @@ def make_sim():
             'location': 'vietnam',
             'pop_type': 'hybrid',
             'n_imports': {'dist':'poisson','par1':5.0},
-            'age_imports': [50,80]
+            'age_imports': [50,80],
+            'rel_death_prob': 3.0, # Calibration parameter due to hospital outbreak
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
@@ -42,12 +42,15 @@ def make_sim():
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Add testing and tracing interventions
-    trace_probs = {'h': 1, 's': 0.95, 'w': 0.8, 'c': 0.3}
-    trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 14}
-    pars['interventions'] = [cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), symp_test=1.0, do_plot=False),
-                             cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
-                             # cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-15'), sim.day('2020-07-20')], 'vals': [5, 0]}}, do_plot=False)
-                             ]
+    trace_probs = {'h': 1, 's': 0.95, 'w': 0.8, 'c': 0.5}
+    trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 2}
+    pars['interventions'] = [
+        cv.test_prob(start_day=0, symp_prob=0.05, asymp_prob=0.001, do_plot=False),
+        # cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), symp_test=1.0, do_plot=False),
+        cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
+        # cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-15'), sim.day('2020-07-20')], 'vals': [5, 0]}}, do_plot=False)
+        cv.change_beta(['2020-07-20', '2020-07-25'], [0.7, 0.3])
+        ]
 
 
 
@@ -83,6 +86,8 @@ to_plot = sc.objdict({
     'Daily deaths': ['new_deaths'],
     'Cumulative tests': ['cum_tests'],
     'Daily tests': ['new_tests'],
+    'Test yield': ['test_yield'],
+    'Number quarantined': ['n_quarantined'],
     })
 
 # Run and plot
@@ -107,4 +112,5 @@ if doplot:
 
 sc.toc(T)
 
+pl.show()
 
