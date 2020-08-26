@@ -11,12 +11,12 @@ def make_sim():
     pop_scale = total_pop/n_agents
 
     # Calibration parameters
-    beta = 0.011
+    beta = 0.011 # option B: 0.012
 
     pars = {'pop_size': n_agents,
-            'pop_infected': 20,
+            'pop_infected': 40,
             'pop_scale': pop_scale,
-            'rand_seed': 5,
+            'rand_seed': 1,  # option B: 111
             'beta': beta,
             'start_day': start_day,
             'end_day': end_day,
@@ -28,7 +28,7 @@ def make_sim():
             'pop_type': 'hybrid',
             'n_imports': {'dist':'poisson','par1':5.0},
             'age_imports': [50,80],
-            'rel_death_prob': 2.0, # Calibration parameter due to hospital outbreak
+            'rel_death_prob': 1.5, # Calibration parameter due to hospital outbreak; option B: 3.0
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
