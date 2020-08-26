@@ -45,8 +45,8 @@ def make_sim():
     trace_probs = {'h': 1, 's': 0.95, 'w': 0.8, 'c': 0.5}
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 2}
     pars['interventions'] = [
-        cv.test_prob(start_day=0, symp_prob=0.05, asymp_prob=0.001, do_plot=False),
-        # cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), symp_test=1.0, do_plot=False),
+        # cv.test_prob(start_day=0, symp_prob=0.05, asymp_prob=0.001, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), symp_test=1.0, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
         # cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-15'), sim.day('2020-07-20')], 'vals': [5, 0]}}, do_plot=False)
         cv.change_beta(['2020-07-20', '2020-07-25'], [0.7, 0.3])
