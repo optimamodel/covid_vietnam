@@ -9,12 +9,12 @@ import pylab as pl
 def make_sim():
 
     start_day = '2020-06-15'
-    end_day = '2020-08-22'
+    end_day = '2020-09-30'
     total_pop = 11.9e6 # Population of central Vietnam
-    n_agents = 200e3
+    n_agents = 100e3
     pop_scale = total_pop/n_agents
 
-    option = 'B' # set the calibration option: A or B; A is a better fit but B is more believable
+    option = 'A' # set the calibration option: A or B; A is a better fit but B is more believable
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
@@ -50,7 +50,8 @@ def make_sim():
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 2}
     pars['interventions'] = [
         # cv.test_prob(start_day=0, symp_prob=0.05, asymp_prob=0.001, do_plot=False),
-        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), symp_test=1.0, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=1.0, do_plot=False),
+        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=1.0, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
         # cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-15'), sim.day('2020-07-20')], 'vals': [5, 0]}}, do_plot=False)
         {'A':cv.change_beta(['2020-07-20', '2020-07-25'], [0.7, 0.3]),
