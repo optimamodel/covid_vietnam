@@ -14,14 +14,12 @@ def make_sim():
     n_agents = 100e3
     pop_scale = total_pop/n_agents
 
-    option = 'A' # set the calibration option: A or B; A is a better fit but B is more believable
-
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': {'A':20, 'B':30}[option],
+            'pop_infected': 15,
             'pop_scale': pop_scale,
-            'rand_seed': {'A':111, 'B':1}[option],
-            'beta': 0.012,
+            'rand_seed': 1,
+            'beta': 0.0117,
             'start_day': start_day,
             'end_day': end_day,
             'verbose': .1,
@@ -30,9 +28,9 @@ def make_sim():
             'quar_factor': dict(h=1.0, s=0.2, w=0.2, c=0.2),   # Multiply beta by this factor for people in quarantine
             'location': 'vietnam',
             'pop_type': 'hybrid',
-            'n_imports': {'dist':'poisson','par1':5.0},
             'age_imports': [50,80],
-            'rel_death_prob': {'A':3.0, 'B':1.0}[option], # Calibration parameter due to hospital outbreak
+            'rel_crit_prob': 3., # Calibration parameter due to hospital outbreak
+            'rel_death_prob': 4., # Calibration parameter due to hospital outbreak
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
@@ -46,26 +44,15 @@ def make_sim():
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Add testing and tracing interventions
-    trace_probs = {'h': 1, 's': 0.95, 'w': 0.8, 'c': 0.5}
-    trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 2}
+    trace_probs = {'h': 1, 's': 0.95, 'w': 0.8, 'c': 0.05}
+    trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
-        # cv.test_prob(start_day=0, symp_prob=0.05, asymp_prob=0.001, do_plot=False),
-        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=1.0, do_plot=False),
-        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=1.0, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=2.0, quar_test=1.0, do_plot=False),
+        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=2.0, quar_test=1.0, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
-        # cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-15'), sim.day('2020-07-20')], 'vals': [5, 0]}}, do_plot=False)
-        {'A':cv.change_beta(['2020-07-20', '2020-07-25'], [0.7, 0.3]),
-        'B':cv.change_beta(['2020-07-25'], [0.25])}[option]
+        cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-20'), sim.day('2020-07-25')], 'vals': [10, 0]}}, do_plot=False),
+        cv.change_beta(days=0, changes=0.4, trigger=cv.trigger('date_diagnosed',5))
         ]
-
-
-
-#    pars['interventions'] = [cv.test_prob(start_day=0, end_day='2020-07-14', symp_prob=0.15, asymp_quar_prob=0.01, do_plot=False),
-#                             cv.test_prob(start_day='2020-07-15', symp_prob=0.25, asymp_quar_prob=0.01, do_plot=False),
-#                             cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
-                             #cv.dynamic_pars({'n_imports': {'days': [15, 20], 'vals': [5, 0]}})
-#                             ]
-
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
     sim.initialize()
@@ -79,7 +66,7 @@ T = sc.tic()
 cv.check_save_version()
 
 # Settings
-domulti = False
+domulti = True
 doplot = True
 dosave = False
 
@@ -99,11 +86,11 @@ to_plot = sc.objdict({
 
 # Run and plot
 sim = make_sim()
-sim.run()
 if domulti:
     msim = cv.MultiSim(base_sim=sim)
-    msim.run(n_runs=20, reseed=True, noise=0)
+    msim.run(n_runs=10, reseed=True, noise=0)
     msim.reduce()
+else: sim.run()
 
 if dosave:
     if domulti: msim.save('vietnam.sim', keep_people=True)
