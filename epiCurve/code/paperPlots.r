@@ -93,6 +93,8 @@ miles[,Region:=gsub('South','Southern',Region)]
 miles[,milestone:=gsub('dearpart','depart',milestone)]
 miles[,milestone:=gsub('Contract','Contact',milestone)]
 miles[,milestone:=gsub('Commuity','Community',milestone)]
+miles[,milestone:=gsub('detected Hai','detected in Hai',milestone)]
+miles[,milestone:=gsub('Flights ban','Flight ban',milestone)]
 
 ############## X coordinate
 miles[,x0:=date]
@@ -125,17 +127,24 @@ miles[Region=='Central' & date>as.Date('2020-7-1'),y0:=y0+10]
 miles[grep('99',milestone),y0:=y0-30]
 miles[grep('Danang citywide',milestone),y0:=y0-10]
 
+### Adjusting y for isolated milestones
+
+miles[,dist1:=c(linelength,diff(x0)),by='Region']
+miles[,dist2:=c(diff(x0),linelength),by='Region']
+miles[Region=='National' & pmin(dist1,dist2)>=linelength,y0:=40]
+miles[Region!='National' & pmin(dist1,dist2)>=linelength,y0:=30]
+
 
 miles[,y1:=y0-5]
 miles[y1<5,y1:=5]
 #miles[,y2:=y0-20]
-# Calibrating to case counts...
+# Calibrating arrowheads to case counts...
 episums=vietnamEpi[,list(allcases=sum(newcases)),keyby=.(dxdate,Region)]
 miles[,cases:=episums$allcases[match(paste(date,Region),paste(episums$dxdate,episums$Region))]]
 miles[is.na(cases),cases:=0]
 miles[,y2:=cases+2]
 
-# line breaks?
+# line breaks
 miles[nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
 # differential color for lockdown and reopening?
@@ -144,14 +153,15 @@ miles[grep('[Ll]ockdown',milestone),colcode:=2]
 miles[grep('[Rr]elax',milestone),colcode:=3]
 miles[grep('reopen',milestone),colcode:=3]
 
+
 miles[Region=='National' & colcode>1,y0:=50]
 miles[Region=='National' & grepl('Rural',milestone),y0:=45]
 #miles[Region=='National' & colcode==3,y0:=45]
 miles[Region=='National',y1:=y0+2]
 miles[Region=='National',y2:=60]
+
+
 ################################################# Plotting
-
-
 
 p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+facet_grid(relevel(factor(Region),'Northern')~.) +milearrow(miles[Region!='National',])+miletext(miles[Region!='National',])+textcol+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
