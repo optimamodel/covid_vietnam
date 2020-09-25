@@ -23,7 +23,7 @@ mycols=scale_fill_manual(values=c("grey30","darkgoldenrod2","darkcyan"))
 yname=ylab("New Confirmed Cases")
 dates=function(dat) scale_x_date(date_breaks ="week",limits=range(dat$date),breaks=seq(as.Date('2020-1-6'),as.Date('2020-9-21'),7),labels = date_format("%d-%b"),expand=c(0.1,0.1))
 dates2=theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-overall=theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),legend.position = c(0.93,0.25),legend.background = element_rect(linetype=1))
+overall=theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),legend.position = c(0.93,0.25),legend.box.background = element_rect(linetype=1,size=1.))
 blank=guides(fill=guide_legend(title=NULL),color=FALSE)
 textcol=scale_color_manual(values=c('black','red','blue'))
 
@@ -101,9 +101,9 @@ miles[milestone=='Ban on public gatherings',milestone:=paste(milestone,'in Danan
 miles[milestone=='Lockdown relaxed',milestone:=paste('Danang',tolower(milestone))]
 miles[milestone=='Lockdown 3 hospitals with case detection and surrounding house blocks',
 	milestone:='Lockdown 3 hospitals and surrounding house blocks, with case detection']
+
 ##################### X coordinate
 miles[,x0:=date]
-
 
 ### Danang, shifting x coords around wave
 miles[grep('99',milestone),x0:=x0-50]
@@ -113,28 +113,32 @@ miles[grep('Lockdown 3',milestone),x0:=x0-50]
 miles[grep('city lockdown',milestone),x0:=x0-14]
 #miles[grep('99',milestone),x0:=x0-50]
 
-# One in Northern
+# One in Northern? Actually two
 miles[grep('Vinh Phuc',milestone),x0:=x0-15]
-
+miles[grep('north of Hanoi',milestone),x0:=x0-10]
 
 # Edge effects?
 #miles[date<as.Date('2020-2-1'),x0:=x0+7]
 #miles[date>as.Date('2020-9-10'),x0:=x0-7]
-miles[grep('north of Hanoi',milestone),x0:=x0-10]
 
 miles[grep('Targeted lockdown',milestone),x0:=x0+7]
 miles[grep('Lockdown',milestone),x0:=x0+14]
 
-### Arrow origin's x coordinate
+# Lastly, one specific national event
+#miles[grep('Bluezone',milestone),x0:=x0+7]
+
+##### Arrow origin's x coordinate
 miles[,x1:=x0]
 # And... Danang, where else
 miles[grep('Community active',milestone),x1:=x1-28]
 miles[grep('city lockdown',milestone),x1:=x1+12]
 
-############# Y coordinate, generating "ladder"
+
+
+############# Y coordinate, generating "ladders"
 
 miles[,y0:=rep(seq(55,25,-10),1+.N/4)[1:.N],by='Region']
-miles[Region=='National',y0:=rep(seq(40,16,-4),1+.N/7)[1:.N]]
+miles[Region=='National',y0:=rep(seq(47,17,-5),1+.N/6)[1:.N]]
 
 ### Danang, shifting y coords around wave
 miles[Region=='Central' & date>as.Date('2020-7-1'),y0:=y0+10]
@@ -143,13 +147,13 @@ miles[milestone=='Ban on public gatherings in Danang',y0:=y0+10]
 miles[grep('Danang citywide',milestone),y0:=y0-10]
 miles[grep('Community active',milestone),y0:=y0+10]
 miles[grep('One person',milestone),y0:=y0+5]
-miles[milestone=='Danang lockdown relaxed',y0:=20]
+miles[milestone=='Danang lockdown relaxed',y0:=25]
 
 ### Adjusting y for isolated milestones (so they're not "hanging high")
 
 miles[,dist1:=c(linelength,diff(x0)),by='Region']
 miles[,dist2:=c(diff(x0),linelength),by='Region']
-miles[Region=='National' & pmin(dist1,dist2)>=linelength,y0:=40]
+miles[Region=='National' & pmin(dist1,dist2)>=linelength,y0:=45]
 miles[Region!='National' & pmin(dist1,dist2)>=linelength,y0:=35]
 
 
@@ -172,8 +176,9 @@ miles[grep('[Rr]elax',milestone),colcode:=3]
 miles[grep('[Rr]eopen',milestone),colcode:=3]
 
 
-miles[Region=='National' & colcode>1,y0:=50]
-miles[Region=='National' & grepl('Rural',milestone),y0:=45]
+miles[Region=='National' & colcode>1,y0:=55]
+miles[Region=='National' & grepl('Rural',milestone),y0:=51]
+miles[Region=='National' & grepl('^Non-essential',milestone),y0:=47]
 #miles[Region=='National' & colcode==3,y0:=45]
 miles[Region=='National',y1:=y0+2]
 miles[Region=='National',y2:=60]
@@ -185,7 +190,7 @@ p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=facto
 
 
 
-p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=date,y=y0,color=factor(colcode)))+ milearrow(miles[Region=='National',])+geom_label(hjust=0.5,vjust=0.5,size=3.,lineheight=lheight)  + dates(miles)+dates2+textcol+blank+scale_y_continuous(limits=c(12,60),expand=c(0,0))+theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
+p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ milearrow(miles[Region=='National',])+geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + dates(miles)+dates2+textcol+blank+scale_y_continuous(limits=c(14,60),expand=c(0,0))+theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
 #plot.background = element_rect(fill = "grey90"))
 
 ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='../output/paperPlot1.png',height=13,width=15)
