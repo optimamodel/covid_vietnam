@@ -157,7 +157,7 @@ miles[Region=='National' & pmin(dist1,dist2)>=linelength,y0:=45]
 miles[Region!='National' & pmin(dist1,dist2)>=linelength,y0:=35]
 
 
-miles[,y1:=y0-5]
+miles[,y1:=y0-1]
 miles[y1<5,y1:=5]
 #miles[,y2:=y0-20]
 # Calibrating arrowheads to case counts...
@@ -172,6 +172,8 @@ miles[nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s
 # differential color for lockdown and reopening?
 miles[,colcode:=1]
 miles[grep('[Ll]ockdown',milestone),colcode:=2]
+miles[grep('Schools closed',milestone),colcode:=2]
+miles[grep('Ban on public',milestone),colcode:=2]
 miles[grep('[Rr]elax',milestone),colcode:=3]
 miles[grep('[Rr]eopen',milestone),colcode:=3]
 
@@ -179,6 +181,7 @@ miles[grep('[Rr]eopen',milestone),colcode:=3]
 miles[Region=='National' & colcode>1,y0:=55]
 miles[Region=='National' & grepl('Rural',milestone),y0:=51]
 miles[Region=='National' & grepl('^Non-essential',milestone),y0:=47]
+miles[Region=='National' & grepl('Ban on public',milestone),y0:=42]
 #miles[Region=='National' & colcode==3,y0:=45]
 miles[Region=='National',y1:=y0+2]
 miles[Region=='National',y2:=60]
