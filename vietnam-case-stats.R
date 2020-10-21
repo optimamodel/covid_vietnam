@@ -62,10 +62,10 @@ fn <- "cases_by_age_source_region.png"
 ggsave(fn, g, device="png", dpi=300)
 
 # Time series by source
-data.frame(diagdate = seq(as.Date("2020/1/23"), as.Date("2020/8/2"), "days")) %>%
+df <- data.frame(diagdate = seq(as.Date("2020/1/23"), as.Date("2020/8/2"), "days")) %>%
   left_join(rawcases  %>% group_by(Region, Source, Cluster) %>% count(diagdate)) %>%
-  rename(date=diagdate,new_diagnoses=n) %>% filter(!is.na(Region) & !is.na(Source)) %>%
-  ggplot(aes(x=date, y=new_diagnoses, fill=Source)) +
+  rename(date=diagdate,new_diagnoses=n) %>% filter(!is.na(Region) & !is.na(Source))
+ggplot(df, aes(x=date, y=new_diagnoses, fill=Source)) +
     geom_bar(stat="identity") + 
     facet_wrap(~Region) + 
     theme_pubclean() + 
@@ -79,6 +79,9 @@ data.frame(diagdate = seq(as.Date("2020/1/23"), as.Date("2020/8/2"), "days")) %>
 
 fn <- "cases_by_date_source_region.png"
 ggsave(fn, plot = last_plot(), device="png", dpi=300)
+
+df2 <- df  %>% group_by(Region, Source) %>% summarise(total = sum(new_diagnoses))
+
 
 # Make dataframe with data from central region over the past week
 diagnoses <- data.frame(diagdate = seq(as.Date("2020/7/1"), as.Date("2020/8/22"), "days")) %>%
@@ -111,8 +114,15 @@ for (d in dates) {
 
 vietnam_data <- left_join(diagnoses, deaths)
 vietnam_data$new_tests <- running_total
-write.csv(vietnam_data,"vietnam_data.csv")  
 
+# Add latest data
+Vietnam <- read.csv("~/Documents/git/covid_vietnam/Vietnam.csv")
+newdata <- Vietnam[as.Date(Vietnam$date)>"2020-08-23",c("date","new_diagnoses","new_deaths")]
+newdata$new_tests <- NA
+vietnam_data <- rbind(vietnam_data, newdata)
+vietnam_data$date <- format(vietnam_data$date, "%Y-%m-%d")
+
+write.csv(vietnam_data,"vietnam_data.csv")  
 
 ########################################
 # Investigating clusters... 
@@ -124,3 +134,50 @@ hosp <- rawcases %>% filter(Region=="North", Source=="Domestic", Origin %in% c("
 # South region
 ss <- rawcases  %>% group_by(transmit) %>% filter(Region=="South", Type %in% c("Interregional", "Imported")) %>% count(transmit) 
 hosp <- rawcases %>% filter(Region=="South", Source=="Domestic", Origin %in% c("Bach Mai hospital","Ha Loi")) %>% count() 
+
+
+#########################################
+# Make dataframe with data from Northern region since beginning of epidemic
+diagnoses <- data.frame(diagdate = seq(as.Date("2020/2/4"), as.Date("2020/8/22"), "days")) %>%
+  left_join(rawcases %>% filter(Region=="North", Source=="Domestic") %>% count(diagdate))  %>%
+  rename(date=diagdate,new_diagnoses=n) %>% replace(is.na(.), 0)
+
+deaths <- data.frame(Dead = seq(as.Date("2020/2/4"), as.Date("2020/8/22"), "days")) %>%
+  left_join(rawcases %>% filter(Region=="North", Source=="Domestic") %>% count(Dead))  %>%
+  rename(date=Dead,new_deaths=n) %>% replace(is.na(.), 0)
+
+## Get testing data
+north_codes <- read_excel("Testing_COVID19_HK_22Aug.xlsx", skip = 2) %>%
+  rename(en_name=X__1,Region=X__2) %>%
+  filter(Region=="North") 
+
+sheets = excel_sheets(path = "Testing_COVID19_HK_22Aug.xlsx")
+dates <- sheets[-1]
+
+tests <- data.frame(testdate = seq(as.Date("2020/3/17"), as.Date("2020/8/22"), "days"))
+
+tests <- data.frame(sheet_name = NA,tests = NA)
+#tests$sheet_name = NA
+#tests$tests = NA
+
+running_total = c()
+days = c()
+for (d in rev(dates)) {
+  if (d %in% c("14_7","20_7","21_7","11_4")) {
+    todays_total <- 0
+  }
+  else {
+    todays_tests <- read_excel("Testing_COVID19_HK_22Aug.xlsx",  sheet = d, skip = 2) %>% 
+      filter(`Đơn vị thực hiện` %in% north_codes$`Names of health facilities`) 
+    todays_total <- sum(todays_tests$`Kết quả trong ngày`,na.rm=T)}
+  running_total = c(running_total, todays_total)
+  days = c(days,paste("2020/",str_split(d,"_")[[1]][2],"/",str_split(d,"_")[[1]][1],sep=""))
+}
+
+tests <- data.frame(date = days,new_tests = running_total)
+tests$date <- ymd(tests$date)
+
+vietnam_data <- left_join(diagnoses, deaths)
+vietnam_data <- left_join(vietnam_data,tests)
+
+write.csv(vietnam_data,"north_vietnam_data.csv")  
