@@ -82,7 +82,8 @@ cv.check_save_version()
 # Iterate for calibration
 s0 = make_sim(seed=1)
 sims = []
-for seed in range(500):
+n_runs = 500
+for seed in range(n_runs):
     sim = s0.copy()
     sim['rand_seed'] = seed
     sim.set_seed()
@@ -91,7 +92,7 @@ msim = cv.MultiSim(sims)
 msim.run()
 fitsummary = {}
 fitsummary['allmismatches'] = [sim.compute_fit().mismatch for sim in msim.sims]
-fitsummary['goodseeds'] = [i for i in range(20) if allmismatches[i]<110]
+fitsummary['goodseeds'] = [i for i in range(n_runs) if fitsummary['allmismatches'][i]<110]
 sc.saveobj('fitsummary.obj',fitsummary)
 
 """
