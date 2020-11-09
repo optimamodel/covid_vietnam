@@ -6,7 +6,7 @@ import covasim as cv
 import sciris as sc
 import pylab as pl
 
-today = '2020-10-12'
+today = '2020-11-09'
 
 def make_sim(seed, beta):
 
@@ -53,12 +53,12 @@ def make_sim(seed, beta):
         # Testing and tracing
         cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=60, quar_test=50, do_plot=False),
 #        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=60.0, quar_test=50.,do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.05, asymp_quar_prob=0.05, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.8, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Introduce imported cases in mid-July and then again in September (representing reopening borders)
         cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-20'), sim.day('2020-07-25')], 'vals': [20, 0]}}, do_plot=False),
-        cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-11-01'), sim.day('2020-11-02')], 'vals': [20, 0]}}, do_plot=False),
+        cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-11-15'), sim.day('2020-11-16')], 'vals': [20, 0]}}, do_plot=False),
 
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
 #        cv.change_beta(['2020-07-30'], [0.25]),
@@ -67,7 +67,7 @@ def make_sim(seed, beta):
         cv.change_beta(days=140, changes=0.4, trigger=cv.trigger('date_diagnosed', 5)),
 
         # Change death and critical probabilities
-        cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}}) # Assume these were elevated due to the hospital outbreak but then would return to normal
+        cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}},do_plot=False) # Assume these were elevated due to the hospital outbreak but then would return to normal
         ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -110,14 +110,16 @@ if do_fitting:
 
 else:
     # Load good seeds
-    fitsummary = sc.loadobj('fitsummary.obj')
-    s0 = make_sim(seed=1)
+    fitsummary = sc.loadobj('fitsummary1.obj')
+    betas = [i / 10000 for i in range(140, 151, 1)]
     sims = []
-    for seed in [i for i in range(n_runs) if fitsummary['allmismatches'][i]<75]:
-        sim = s0.copy()
-        sim['rand_seed'] = seed
-        sim.set_seed()
-        sims.append(sim)
+    for bn,beta in enumerate(betas):
+        s0 = make_sim(seed=1, beta=beta)
+        for seed in [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i]<70]:
+            sim = s0.copy()
+            sim['rand_seed'] = seed
+            sim.set_seed()
+            sims.append(sim)
     msim = cv.MultiSim(sims)
     msim.run()
     to_plot = sc.objdict({

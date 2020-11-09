@@ -83,7 +83,7 @@ ggsave(fn, plot = last_plot(), device="png", dpi=300)
 df2 <- df  %>% group_by(Region, Source) %>% summarise(total = sum(new_diagnoses))
 
 
-# Make dataframe with data from central region over the past week
+# Make dataframe with data from central region 
 diagnoses <- data.frame(diagdate = seq(as.Date("2020/7/1"), as.Date("2020/8/22"), "days")) %>%
   left_join(rawcases %>% filter(Region=="Central", Source=="Domestic") %>% count(diagdate))  %>%
   rename(date=diagdate,new_diagnoses=n) %>% replace(is.na(.), 0)
@@ -94,7 +94,7 @@ deaths <- data.frame(Dead = seq(as.Date("2020/7/25"), as.Date("2020/8/22"), "day
 
 ## Get testing data
 central_codes <- read_excel("Testing_COVID19_HK_22Aug.xlsx", skip = 2) %>%
-  rename(en_name=X__1,Region=X__2) %>%
+  rename(en_name="...3" ,Region="...4" ) %>%
   filter(Region=="Central") 
 
 tests <- data.frame(testdate = seq(as.Date("2020/7/1"), as.Date("2020/8/22"), "days"))
