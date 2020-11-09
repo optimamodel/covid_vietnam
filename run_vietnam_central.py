@@ -8,10 +8,10 @@ import pylab as pl
 
 today = '2020-10-12'
 
-def make_sim(seed):
+def make_sim(seed, beta):
 
     start_day = '2020-06-15'
-    end_day = today #'2020-10-31'
+    end_day = '2020-12-31'
     total_pop = 11.9e6 #95.5e6 # Population of central Vietnam
     n_agents = 100e3
     pop_scale = total_pop/n_agents
@@ -21,7 +21,7 @@ def make_sim(seed):
             'pop_infected': 10,
             'pop_scale': pop_scale,
             'rand_seed': seed,
-            'beta': 0.0145,
+            'beta': beta, #0.0145,
             'start_day': start_day,
             'end_day': end_day,
             'verbose': .1,
@@ -58,16 +58,16 @@ def make_sim(seed):
 
         # Introduce imported cases in mid-July and then again in September (representing reopening borders)
         cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-20'), sim.day('2020-07-25')], 'vals': [20, 0]}}, do_plot=False),
-        #cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-10-01'), sim.day('2020-10-02')], 'vals': [10, 0]}}, do_plot=False),
+        cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-11-01'), sim.day('2020-11-02')], 'vals': [20, 0]}}, do_plot=False),
 
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
 #        cv.change_beta(['2020-07-30'], [0.25]),
         cv.change_beta(days=0, changes=0.25, trigger=cv.trigger('date_diagnosed',5)),
-#        cv.change_beta(days=80, changes=1.0, trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28)),
-#        cv.change_beta(days=140, changes=0.4, trigger=cv.trigger('date_diagnosed', 5)),
+        cv.change_beta(days=80, changes=1.0, trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28)),
+        cv.change_beta(days=140, changes=0.4, trigger=cv.trigger('date_diagnosed', 5)),
 
         # Change death and critical probabilities
-#        cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}}) # Assume these were elevated due to the hospital outbreak but then would return to normal
+        cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}}) # Assume these were elevated due to the hospital outbreak but then would return to normal
         ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -78,22 +78,62 @@ def make_sim(seed):
 
 T = sc.tic()
 cv.check_save_version()
+do_fitting = False
+do_plot = True
+do_save = True
+save_sim = True
+n_runs = 100
 
 # Iterate for calibration
+if do_fitting:
+    fitsummary = {}
+    fitsummary['allmismatches'] = []
+    fitsummary['percentlt75'] = []
+    fitsummary['percentlt100'] = []
+
+    betas = [i / 10000 for i in range(100, 200, 5)]
+    for beta in betas:
+        s0 = make_sim(seed=1, beta=beta)
+        sims = []
+        for seed in range(n_runs):
+            sim = s0.copy()
+            sim['rand_seed'] = seed
+            sim.set_seed()
+            sims.append(sim)
+        msim = cv.MultiSim(sims)
+        msim.run()
+        fitsummary['allmismatches'].append([sim.compute_fit().mismatch for sim in msim.sims])
+        fitsummary['percentlt75'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<75])
+        fitsummary['percentlt100'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<100])
+    sc.saveobj(f'fitsummary.obj',fitsummary)
+
+
+# Load good seeds
+fitsummary = sc.loadobj('fitsummary.obj')
 s0 = make_sim(seed=1)
 sims = []
-n_runs = 500
-for seed in range(n_runs):
+for seed in [i for i in range(n_runs) if fitsummary['allmismatches'][i]<75]:
     sim = s0.copy()
     sim['rand_seed'] = seed
     sim.set_seed()
     sims.append(sim)
 msim = cv.MultiSim(sims)
 msim.run()
-fitsummary = {}
-fitsummary['allmismatches'] = [sim.compute_fit().mismatch for sim in msim.sims]
-fitsummary['goodseeds'] = [i for i in range(n_runs) if fitsummary['allmismatches'][i]<110]
-sc.saveobj('fitsummary.obj',fitsummary)
+to_plot = sc.objdict({
+    'Cumulative diagnoses': ['cum_diagnoses'],
+    'Cumulative infections': ['cum_infections'],
+    'New infections': ['new_infections'],
+    'Daily diagnoses': ['new_diagnoses'],
+    'Cumulative deaths': ['cum_deaths'],
+    'Daily deaths': ['new_deaths'],
+    })
+
+if do_plot:
+    msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+              legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+if save_sim:
+    msim.save('vietnam_sim.obj')
+
 
 """
 
