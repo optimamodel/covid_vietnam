@@ -8,10 +8,10 @@ import pylab as pl
 
 today = '2020-10-12'
 
-def make_sim(seed, beta):
+def make_sim(seed, beta, symp_test):
 
     start_day = '2020-06-15'
-    end_day = '2020-12-31'
+    end_day = today #'2020-12-31'
     total_pop = 11.9e6 #95.5e6 # Population of central Vietnam
     n_agents = 100e3
     pop_scale = total_pop/n_agents
@@ -51,7 +51,7 @@ def make_sim(seed, beta):
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=60.0, quar_test=50.,do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=symp_test, quar_test=symp_test/2, do_plot=False),
 #        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=60.0, quar_test=50.,do_plot=False),
         cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.05, asymp_quar_prob=0.05, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
@@ -78,11 +78,11 @@ def make_sim(seed, beta):
 
 T = sc.tic()
 cv.check_save_version()
-do_fitting = False
+do_fitting = True
 do_plot = True
 do_save = True
 save_sim = True
-n_runs = 100
+n_runs = 5
 
 # Iterate for calibration
 if do_fitting:
@@ -91,7 +91,7 @@ if do_fitting:
     fitsummary['percentlt75'] = []
     fitsummary['percentlt100'] = []
 
-    betas = [i / 10000 for i in range(100, 200, 5)]
+    betas = [i / 10000 for i in range(100, 200, 20)]
     for beta in betas:
         s0 = make_sim(seed=1, beta=beta)
         sims = []
@@ -108,31 +108,32 @@ if do_fitting:
     sc.saveobj(f'fitsummary.obj',fitsummary)
 
 
-# Load good seeds
-fitsummary = sc.loadobj('fitsummary.obj')
-s0 = make_sim(seed=1)
-sims = []
-for seed in [i for i in range(n_runs) if fitsummary['allmismatches'][i]<75]:
-    sim = s0.copy()
-    sim['rand_seed'] = seed
-    sim.set_seed()
-    sims.append(sim)
-msim = cv.MultiSim(sims)
-msim.run()
-to_plot = sc.objdict({
-    'Cumulative diagnoses': ['cum_diagnoses'],
-    'Cumulative infections': ['cum_infections'],
-    'New infections': ['new_infections'],
-    'Daily diagnoses': ['new_diagnoses'],
-    'Cumulative deaths': ['cum_deaths'],
-    'Daily deaths': ['new_deaths'],
-    })
+else:
+    # Load good seeds
+    fitsummary = sc.loadobj('fitsummary.obj')
+    s0 = make_sim(seed=1)
+    sims = []
+    for seed in [i for i in range(n_runs) if fitsummary['allmismatches'][i]<75]:
+        sim = s0.copy()
+        sim['rand_seed'] = seed
+        sim.set_seed()
+        sims.append(sim)
+    msim = cv.MultiSim(sims)
+    msim.run()
+    to_plot = sc.objdict({
+        'Cumulative diagnoses': ['cum_diagnoses'],
+        'Cumulative infections': ['cum_infections'],
+        'New infections': ['new_infections'],
+        'Daily diagnoses': ['new_diagnoses'],
+        'Cumulative deaths': ['cum_deaths'],
+        'Daily deaths': ['new_deaths'],
+        })
 
-if do_plot:
-    msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
-              legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
-if save_sim:
-    msim.save('vietnam_sim.obj')
+    if do_plot:
+        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+    if save_sim:
+        msim.save('vietnam_sim.obj')
 
 
 """
