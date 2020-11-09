@@ -24,7 +24,7 @@ class Calibration:
         self.total_pop = 95.5e6
 
         # Saving and running
-        self.n_trials  = 50 # Number of sequential Optuna trials
+        self.n_trials  = 100 # Number of sequential Optuna trials
         self.n_workers = 1 # Number of parallel Optuna threads -- incompatible with n_runs > 1
         self.n_runs    = 50 # Number of sims being averaged together in a single trial -- incompatible with n_workers > 1
         self.storage   = storage # Database location

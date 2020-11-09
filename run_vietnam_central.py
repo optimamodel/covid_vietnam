@@ -8,7 +8,7 @@ import pylab as pl
 
 today = '2020-10-12'
 
-def make_sim(seed, beta, symp_test):
+def make_sim(seed, beta):
 
     start_day = '2020-06-15'
     end_day = today #'2020-12-31'
@@ -21,7 +21,7 @@ def make_sim(seed, beta, symp_test):
             'pop_infected': 10,
             'pop_scale': pop_scale,
             'rand_seed': seed,
-            'beta': beta, #0.0145,
+            'beta': beta,#0.0145
             'start_day': start_day,
             'end_day': end_day,
             'verbose': .1,
@@ -51,7 +51,7 @@ def make_sim(seed, beta, symp_test):
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=symp_test, quar_test=symp_test/2, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=60, quar_test=50, do_plot=False),
 #        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=60.0, quar_test=50.,do_plot=False),
         cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.05, asymp_quar_prob=0.05, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
@@ -82,7 +82,7 @@ do_fitting = True
 do_plot = True
 do_save = True
 save_sim = True
-n_runs = 5
+n_runs = 300
 
 # Iterate for calibration
 if do_fitting:
@@ -91,7 +91,7 @@ if do_fitting:
     fitsummary['percentlt75'] = []
     fitsummary['percentlt100'] = []
 
-    betas = [i / 10000 for i in range(100, 200, 20)]
+    betas = [i / 10000 for i in range(140, 151, 1)]
     for beta in betas:
         s0 = make_sim(seed=1, beta=beta)
         sims = []
