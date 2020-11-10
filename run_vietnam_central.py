@@ -6,7 +6,7 @@ import covasim as cv
 import sciris as sc
 import pylab as pl
 
-today = '2020-11-09'
+today = '2020-10-15'
 
 def make_sim(seed, beta):
 
@@ -82,7 +82,7 @@ do_fitting = True
 do_plot = True
 do_save = True
 save_sim = True
-n_runs = 300
+n_runs = 500
 
 # Iterate for calibration
 if do_fitting:
@@ -110,16 +110,18 @@ if do_fitting:
 
 else:
     # Load good seeds
-    fitsummary = sc.loadobj('fitsummary1.obj')
+    fitsummary = sc.loadobj('fitsummary.obj')
     betas = [i / 10000 for i in range(140, 151, 1)]
     sims = []
     for bn,beta in enumerate(betas):
         s0 = make_sim(seed=1, beta=beta)
-        for seed in [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i]<70]:
-            sim = s0.copy()
-            sim['rand_seed'] = seed
-            sim.set_seed()
-            sims.append(sim)
+        goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 100]
+        if len(goodseeds)>0:
+            for seed in goodseeds:
+                sim = s0.copy()
+                sim['rand_seed'] = seed
+                sim.set_seed()
+                sims.append(sim)
     msim = cv.MultiSim(sims)
     msim.run()
     to_plot = sc.objdict({
