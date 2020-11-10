@@ -11,7 +11,7 @@ today = '2020-10-15'
 def make_sim(seed, beta):
 
     start_day = '2020-06-15'
-    end_day = today #'2020-12-31'
+    end_day = '2020-12-31'
     total_pop = 11.9e6 #95.5e6 # Population of central Vietnam
     n_agents = 100e3
     pop_scale = total_pop/n_agents
@@ -52,7 +52,6 @@ def make_sim(seed, beta):
     pars['interventions'] = [
         # Testing and tracing
         cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
-#        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=60.0, quar_test=50.,do_plot=False),
         cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.5, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
@@ -61,7 +60,6 @@ def make_sim(seed, beta):
         cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-11-15'), sim.day('2020-11-16')], 'vals': [20, 0]}}, do_plot=False),
 
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
-#        cv.change_beta(['2020-07-30'], [0.25]),
         cv.change_beta(days=0, changes=0.25, trigger=cv.trigger('date_diagnosed',5)),
         cv.change_beta(days=80, changes=1.0, trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28)),
         cv.change_beta(days=140, changes=0.4, trigger=cv.trigger('date_diagnosed', 5)),
@@ -83,7 +81,7 @@ do_fitting = True
 do_plot = True
 do_save = True
 save_sim = True
-n_runs = 300
+n_runs = 400
 
 # Iterate for calibration
 if do_fitting:
@@ -92,7 +90,7 @@ if do_fitting:
     fitsummary['percentlt75'] = []
     fitsummary['percentlt100'] = []
 
-    betas = [i / 10000 for i in range(140, 151, 1)]
+    betas = [i / 10000 for i in range(135, 156, 1)]
     for beta in betas:
         s0 = make_sim(seed=1, beta=beta)
         sims = []
@@ -116,7 +114,7 @@ else:
     sims = []
     for bn,beta in enumerate(betas):
         s0 = make_sim(seed=1, beta=beta)
-        goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 100]
+        goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 80]
         if len(goodseeds)>0:
             for seed in goodseeds:
                 sim = s0.copy()
