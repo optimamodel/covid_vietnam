@@ -32,8 +32,8 @@ def make_sim(seed, beta):
             'pop_type': 'hybrid',
 #            'n_imports': {'dist': 'poisson', 'par1': 5.0},
             'age_imports': [50,80],
-            'rel_crit_prob': 1.25, # Calibration parameter due to hospital outbreak
-            'rel_death_prob': 1.25, # Calibration parameter due to hospital outbreak
+            'rel_crit_prob': 1.5, # Calibration parameter due to hospital outbreak
+            'rel_death_prob': 1.5, # Calibration parameter due to hospital outbreak
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
@@ -51,9 +51,9 @@ def make_sim(seed, beta):
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-#        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=60, quar_test=50, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
 #        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=60.0, quar_test=50.,do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), end_day=sim.day('2020-08-22'), symp_prob=0.15, asymp_quar_prob=0.5, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.05, asymp_quar_prob=0.05, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Introduce imported cases in mid-July and then again in September (representing reopening borders)
@@ -78,11 +78,12 @@ def make_sim(seed, beta):
 
 T = sc.tic()
 cv.check_save_version()
+
 do_fitting = True
 do_plot = True
 do_save = True
 save_sim = True
-n_runs = 50
+n_runs = 100
 
 # Iterate for calibration
 if do_fitting:
@@ -139,6 +140,33 @@ else:
     if save_sim:
         msim.save('vietnam_sim.obj')
 
+
+'''
+s0 = make_sim(seed=1, beta=0.0145)
+sims = []
+for seed in range(6):
+    sim = s0.copy()
+    sim['rand_seed'] = seed
+    sim.set_seed()
+    sims.append(sim)
+msim = cv.MultiSim(sims)
+msim.run()
+msim.reduce()
+# Plot settings
+to_plot = sc.objdict({
+    'Cumulative diagnoses': ['cum_diagnoses'],
+    'Cumulative infections': ['cum_infections'],
+    'New infections': ['new_infections'],
+    'Daily diagnoses': ['new_diagnoses'],
+    'Cumulative deaths': ['cum_deaths'],
+    'Daily deaths': ['new_deaths'],
+    })
+
+msim.plot(to_plot=to_plot, do_save=True, do_show=False, fig_path=f'vietnam.png',
+          legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+
+
+'''
 
 """
 
