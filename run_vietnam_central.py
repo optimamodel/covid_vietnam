@@ -53,7 +53,7 @@ def make_sim(seed, beta):
         # Testing and tracing
         cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
 #        cv.test_num(daily_tests=7000, start_day=sim.day('2020-08-23'), symp_test=60.0, quar_test=50.,do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.05, asymp_quar_prob=0.05, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.5, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Introduce imported cases in mid-July and then again in September (representing reopening borders)
@@ -83,7 +83,7 @@ do_fitting = True
 do_plot = True
 do_save = True
 save_sim = True
-n_runs = 100
+n_runs = 300
 
 # Iterate for calibration
 if do_fitting:
