@@ -27,8 +27,8 @@ todayind = sim.day(today)
 cumdiag = []
 newinf = []
 for tn,t in enumerate(thresholds):
-    cumdiag.append([s.results['cum_diagnoses'].values[-1] - s.results['cum_diagnoses'].values[todayind] for s in sims[tn]])
-    newinf.append([s.results['new_infections'].values[todayind-14:] for s in sims[tn]])
+    cumdiag.append([s.results['cum_infections'].values[-1] - s.results['cum_infections'].values[todayind] for s in sims[tn]])
+    newinf.append([s.results['new_diagnoses'].values[todayind-14:] for s in sims[tn]])
 
 
 # Fonts and sizes
@@ -36,7 +36,7 @@ font_size = 36
 font_family = 'Libertinus Sans'
 pl.rcParams['font.size'] = font_size
 pl.rcParams['font.family'] = font_family
-pl.figure(figsize=(24,16))
+pl.figure(figsize=(24,12))
 
 # Plot locations
 # Subplot sizes

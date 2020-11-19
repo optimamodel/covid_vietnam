@@ -7,17 +7,15 @@ import sciris as sc
 import pylab as pl
 import numpy as np
 
-today = '2020-10-15'
 
 # Make the sim
-def make_sim(seed, beta, policy='remain', threshold=5):
+def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
 
     start_day = '2020-06-15'
-    end_day = '2021-02-28'
+    if end_day is None: end_day = '2021-02-28'
     total_pop = 11.9e6 #95.5e6 # Population of central Vietnam
     n_agents = 100e3
     pop_scale = total_pop/n_agents
-
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
@@ -33,7 +31,6 @@ def make_sim(seed, beta, policy='remain', threshold=5):
             'quar_factor': dict(h=1.0, s=0.2, w=0.2, c=0.2),   # Multiply beta by this factor for people in quarantine
             'location': 'vietnam',
             'pop_type': 'hybrid',
-#            'n_imports': {'dist': 'poisson', 'par1': 5.0},
             'age_imports': [50,80],
             'rel_crit_prob': 1.5, # Calibration parameter due to hospital outbreak
             'rel_death_prob': 1.5, # Calibration parameter due to hospital outbreak
@@ -54,11 +51,11 @@ def make_sim(seed, beta, policy='remain', threshold=5):
     import_start = sim.day('2020-07-20')
     import_end   = sim.day('2020-07-25')
     border_start = sim.day('2020-11-15')
-    end_day_ind  = sim.day(end_day)
+    final_day_ind  = sim.day('2020-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
                               pl.ones(import_end-import_start)*20, # 20 imports/day over the first importation window
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
-                              np.random.poisson( 1, end_day_ind-border_start) # Poisson-distributed importations each day
+                              cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
     pars['n_imports'] = imports
 
@@ -71,20 +68,24 @@ def make_sim(seed, beta, policy='remain', threshold=5):
         cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.5, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
-#        # Introduce imported cases in mid-July and then again in September (representing reopening borders)
-#        cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-07-20'), sim.day('2020-07-25')], 'vals': [20, 0]}}, do_plot=False),
-#        cv.dynamic_pars({'n_imports': {'days': [sim.day('2020-11-15'), sim.day('2020-11-16')], 'vals': [20, 0]}}, do_plot=False),
-
         # Change death and critical probabilities
         cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}},do_plot=False), # Assume these were elevated due to the hospital outbreak but then would return to normal
+
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
-        cv.change_beta(days=0, changes=[0.25], trigger=cv.trigger('date_diagnosed',5)),
+        cv.change_beta(days=0, changes=[0.25], trigger=cv.trigger('date_diagnosed', 5)),
+
+        # Close schools and workplaces
+        cv.clip_edges(days=['2020-07-28', '2020-09-14'], changes=[0.1, 1.], layers=['s'], do_plot=True),
+        cv.clip_edges(days=['2020-07-28', '2020-09-05'], changes=[0.5, 1.], layers=['w'], do_plot=False),
         ]
 
     if policy != 'remain':
         pars['interventions'] += [cv.change_beta(days=80, changes=[1.0], trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28))]
     if policy == 'dynamic':
-        pars['interventions'] += [cv.change_beta(days=140, changes=[0.25], trigger=cv.trigger('date_diagnosed', threshold)),]
+        pars['interventions'] += [cv.change_beta(days=140, changes=[0.25], trigger=cv.trigger('date_diagnosed', threshold)),
+                                  cv.clip_edges(days=[140], changes=[0.1], layers=['s'], trigger=cv.trigger('date_diagnosed', threshold)),
+                                  cv.clip_edges(days=[140], changes=[0.5], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
+                                  ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
     sim.initialize()
@@ -95,22 +96,49 @@ def make_sim(seed, beta, policy='remain', threshold=5):
 T = sc.tic()
 cv.check_save_version()
 
-whattorun = ['fitting', 'mainscens', 'multiscens'][2]
+whattorun = ['quickfit', 'fitting', 'mainscens', 'multiscens'][1]
 do_plot = True
 do_save = True
 save_sim = True
 n_runs = 400
 betas = [i / 10000 for i in range(135, 156, 1)]
+today = '2020-10-15'
+
+# Quick calibration
+if whattorun=='quickfit':
+    s0 = make_sim(seed=1, beta=0.0145, end_day=today)
+    sims = []
+    for seed in range(6):
+        sim = s0.copy()
+        sim['rand_seed'] = seed
+        sim.set_seed()
+        sims.append(sim)
+    msim = cv.MultiSim(sims)
+    msim.run()
+    msim.reduce()
+    # Plot settings
+    to_plot = sc.objdict({
+        'Cumulative diagnoses': ['cum_diagnoses'],
+        'Cumulative infections': ['cum_infections'],
+        'New infections': ['new_infections'],
+        'Daily diagnoses': ['new_diagnoses'],
+        'Cumulative deaths': ['cum_deaths'],
+        'Daily deaths': ['new_deaths'],
+        })
+
+    msim.plot(to_plot=to_plot, do_save=True, do_show=False, fig_path=f'vietnam.png',
+              legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+
 
 # Iterate for calibration
-if whattorun=='fitting':
+elif whattorun=='fitting':
     fitsummary = {}
     fitsummary['allmismatches'] = []
     fitsummary['percentlt75'] = []
     fitsummary['percentlt100'] = []
 
     for beta in betas:
-        s0 = make_sim(seed=1, beta=beta)
+        s0 = make_sim(seed=1, beta=beta, end_day=today)
         sims = []
         for seed in range(n_runs):
             sim = s0.copy()
@@ -201,32 +229,6 @@ elif whattorun=='multiscens':
                       legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
 
-'''
-s0 = make_sim(seed=1, beta=0.0145)
-sims = []
-for seed in range(6):
-    sim = s0.copy()
-    sim['rand_seed'] = seed
-    sim.set_seed()
-    sims.append(sim)
-msim = cv.MultiSim(sims)
-msim.run()
-msim.reduce()
-# Plot settings
-to_plot = sc.objdict({
-    'Cumulative diagnoses': ['cum_diagnoses'],
-    'Cumulative infections': ['cum_infections'],
-    'New infections': ['new_infections'],
-    'Daily diagnoses': ['new_diagnoses'],
-    'Cumulative deaths': ['cum_deaths'],
-    'Daily deaths': ['new_deaths'],
-    })
-
-msim.plot(to_plot=to_plot, do_save=True, do_show=False, fig_path=f'vietnam.png',
-          legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
-
-
-'''
 
 """
 
