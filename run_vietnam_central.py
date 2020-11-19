@@ -51,7 +51,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
     import_start = sim.day('2020-07-20')
     import_end   = sim.day('2020-07-25')
     border_start = sim.day('2020-11-15')
-    final_day_ind  = sim.day('2020-02-28')
+    final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
                               pl.ones(import_end-import_start)*20, # 20 imports/day over the first importation window
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
