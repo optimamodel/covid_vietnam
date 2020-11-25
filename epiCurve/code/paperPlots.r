@@ -180,6 +180,17 @@ miles[grep('[Rr]elax',milestone),colcode:=3]
 miles[grep('[Rr]eopen',milestone),colcode:=3]
 
 
+############ National plot
+
+cumuls=quang[,list(newcases=.N),keyby='dxdate']
+cumuls[,totcases:=cumsum(newcases)]
+# Deaths
+quang[,deathdate:=gsub('29[-]08[-][-]20','8/29/2020',Dead)]
+quang[,deathdate:=as.Date(deathdate,'%m/%d/%Y')]
+deaths=quang[!is.na(deathdate),list(newdeaths=.N),keyby='deathdate']
+# TODO: Need to merge both into a complete timeline with no missing days
+#cumuls[,newdeaths:=deaths$newdeaths[match(dxdate,deaths$deathdate)]]
+
 miles[Region=='National' & colcode>1,y0:=55]
 miles[Region=='National' & grepl('Rural',milestone),y0:=51]
 miles[Region=='National' & grepl('^Non-essential',milestone),y0:=47]
