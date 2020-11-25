@@ -231,7 +231,7 @@ miles[Region=='National',c('y0','y1'):=list(tfac*y0,tfac*y1)]
 
 
 nwid=2
-dcol='red'
+dcol='maroon'
 
 pnat<-ggplot(national,aes(x=refdate))+geom_line(aes(y=totcases),lwd=nwid)+scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + ylab("Cumulative Confirmed Cases")+xlab("Date") + geom_label(data=miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),hjust=0.5,vjust=0.5,lineheight=lheight) + dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ scale_size(range = 3.5*c(1,bigsize))+theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
 
