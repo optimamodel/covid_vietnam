@@ -16,6 +16,7 @@ fhigh=10
 f2wide=12	
 f2high=12
 psize=5
+bigsize=1.5 # for bigger labels
 linelength=32
 lheight=0.7
 tcol='black'
@@ -112,7 +113,8 @@ miles[grep('99',milestone),x0:=x0-50]
 miles[milestone=='Ban on public gatherings in Danang',x0:=x0-30]
 miles[grep('Community active',milestone),x0:=x0+30]
 miles[grep('Lockdown 3',milestone),x0:=x0-50]
-miles[grep('city lockdown',milestone),x0:=x0-14]
+miles[grep('city lockdown',milestone),x0:=x0-20]
+miles[grep('One person',milestone),x0:=x0+5]
 #miles[grep('99',milestone),x0:=x0-50]
 
 # One in Northern? Actually two
@@ -140,7 +142,6 @@ miles[grep('city lockdown',milestone),x1:=x1+12]
 ############# Y coordinate, generating "ladders"
 
 miles[,y0:=rep(seq(55,25,-10),1+.N/4)[1:.N],by='Region']
-miles[Region=='National',y0:=rep(seq(47,17,-5),1+.N/6)[1:.N]]
 
 ### Da Nang, shifting y coords around wave
 miles[Region=='Central' & date>as.Date('2020-7-1'),y0:=y0+10]
@@ -155,7 +156,6 @@ miles[milestone=='Danang lockdown relaxed',y0:=25]
 
 miles[,dist1:=c(linelength,diff(x0)),by='Region']
 miles[,dist2:=c(diff(x0),linelength),by='Region']
-miles[Region=='National' & pmin(dist1,dist2)>=linelength,y0:=45]
 miles[Region!='National' & pmin(dist1,dist2)>=linelength,y0:=35]
 
 
@@ -169,7 +169,7 @@ miles[is.na(cases),cases:=0]
 miles[,y2:=cases+2]
 
 # line breaks
-miles[nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
+miles[Region!='National' & nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
 # differential color for lockdown and reopening?
 miles[,colcode:=1]
@@ -180,30 +180,63 @@ miles[grep('[Rr]elax',milestone),colcode:=3]
 miles[grep('[Rr]eopen',milestone),colcode:=3]
 
 
-############ National plot
+####################### National plot data
 
+### National cumulatives
 cumuls=quang[,list(newcases=.N),keyby='dxdate']
 cumuls[,totcases:=cumsum(newcases)]
 # Deaths
 quang[,deathdate:=gsub('29[-]08[-][-]20','8/29/2020',Dead)]
 quang[,deathdate:=as.Date(deathdate,'%m/%d/%Y')]
 deaths=quang[!is.na(deathdate),list(newdeaths=.N),keyby='deathdate']
-# TODO: Need to merge both into a complete timeline with no missing days
-#cumuls[,newdeaths:=deaths$newdeaths[match(dxdate,deaths$deathdate)]]
 
-miles[Region=='National' & colcode>1,y0:=55]
-miles[Region=='National' & grepl('Rural',milestone),y0:=51]
-miles[Region=='National' & grepl('^Non-essential',milestone),y0:=47]
-miles[Region=='National' & grepl('Ban on public',milestone),y0:=42]
+# Merging cases and deaths into a complete timeline with no missing days
+national=cumuls[,list(refdate=seq(dxdate[1],max(miles$date),by=1))]
+national[,newcases:=cumuls$newcases[match(refdate,cumuls$dxdate)]]
+national[,newdeaths:=deaths$newdeaths[match(refdate,deaths$deathdate)]]
+national[is.na(newcases),newcases:=0]
+national[is.na(newdeaths),newdeaths:=0]
+national[,c('totcases','totdeaths'):=list(cumsum(newcases),cumsum(newdeaths))]
+
+### National milestones
+miles[Region=='National',y0:=(rep(seq(56,20,-6),1+.N/6)+rep(seq(0,6,2),each=7))[1:.N]]
+miles[Region=='National' & nchar(milestone)>0.6*linelength,milestone:=gsub(paste('(.{',round(0.6*linelength),'})(\\s)',sep=''), '\\1\n',milestone)]
+#miles[Region=='National' & pmin(dist1,dist2)>=linelength,y0:=45]
+
+
+# Adding size...
+miles[,sizefac:=1]
+miles[milestone %in% c('National lockdown','Schools reopen'),sizefac:=bigsize]
+
+#miles[Region=='National' & colcode>1,y0:=55]
+#miles[Region=='National' & grepl('Rural',milestone),y0:=51]
+#miles[Region=='National' & grepl('^Non-essential',milestone),y0:=47]
+#miles[Region=='National' & grepl('Ban on public',milestone),y0:=40]
+#miles[milestone %in% c('National lockdown'),y0:=35]
 #miles[Region=='National' & colcode==3,y0:=45]
 miles[Region=='National',y1:=y0+2]
 miles[Region=='National',y2:=60]
+miles[grep('Reopen borders',milestone),y0:=10] # last milestone low
 
-
-# Da Nang standard naming
+### Last minute! Da Nang standard naming
 miles[,milestone:=gsub('Danang','Da Nang',milestone)]
+miles[Region=='National' & grepl('Da Nang',milestone),y0:=60]
 
 ################################################# Plotting
+
+# Factor between the 2 y axes
+dfac=max(national$totcases)/max(national$totdeaths)
+tfac=0.95*max(national$totcases)/max(miles$y0[miles$Region=='National'])
+miles[Region=='National',c('y0','y1'):=list(tfac*y0,tfac*y1)]
+
+
+nwid=2
+dcol='red'
+
+pnat<-ggplot(national,aes(x=refdate))+geom_line(aes(y=totcases),lwd=nwid)+scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + ylab("Cumulative Confirmed Cases")+xlab("Date") + geom_label(data=miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),hjust=0.5,vjust=0.5,lineheight=lheight) + dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ scale_size(range = 3.5*c(1,bigsize))+theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
+
+ggsave(pnat,file='../output/paperPlot1a.png',height=7,width=14)
+
 
 p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+facet_grid(relevel(factor(Region),'Northern')~.) +milearrow(miles[Region!='National',])+miletext(miles[Region!='National',])+textcol+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
@@ -215,7 +248,6 @@ p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor
 ggsave(p1,file='../output/paperPlot1b.png',height=11,width=14)
 #ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='../output/paperPlot1.png',height=13,width=15)
 #ggsave(ggarrange(p1,p2,heights=c(3.5,1),padding=0,align='v'),file='../output/paperPlot1.png',height=13,width=15)
-
 
 
 cat(date(),'\n')
