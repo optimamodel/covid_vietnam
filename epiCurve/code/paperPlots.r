@@ -90,6 +90,8 @@ setnames(miles,'Level','Region')
 miles[,Region:=gsub('North','Northern',Region)]
 miles[,Region:=gsub('South','Southern',Region)]
 
+
+
 # errata
 miles[,milestone:=gsub('dearpart','depart',milestone)]
 miles[,milestone:=gsub('Contract','Contact',milestone)]
@@ -140,7 +142,7 @@ miles[grep('city lockdown',milestone),x1:=x1+12]
 miles[,y0:=rep(seq(55,25,-10),1+.N/4)[1:.N],by='Region']
 miles[Region=='National',y0:=rep(seq(47,17,-5),1+.N/6)[1:.N]]
 
-### Danang, shifting y coords around wave
+### Da Nang, shifting y coords around wave
 miles[Region=='Central' & date>as.Date('2020-7-1'),y0:=y0+10]
 miles[grep('99',milestone),y0:=y0-20]
 miles[milestone=='Ban on public gatherings in Danang',y0:=y0+10]
@@ -187,6 +189,9 @@ miles[Region=='National',y1:=y0+2]
 miles[Region=='National',y2:=60]
 
 
+# Da Nang standard naming
+miles[,milestone:=gsub('Danang','Da Nang',milestone)]
+
 ################################################# Plotting
 
 p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+facet_grid(relevel(factor(Region),'Northern')~.) +milearrow(miles[Region!='National',])+miletext(miles[Region!='National',])+textcol+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
@@ -196,8 +201,10 @@ p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=facto
 p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ milearrow(miles[Region=='National',])+geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + dates(miles)+dates2+textcol+blank+scale_y_continuous(limits=c(14,60),expand=c(0,0))+theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
 #plot.background = element_rect(fill = "grey90"))
 
-ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='../output/paperPlot1.png',height=13,width=15)
+ggsave(p1,file='../output/paperPlot1b.png',height=11,width=14)
+#ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='../output/paperPlot1.png',height=13,width=15)
 #ggsave(ggarrange(p1,p2,heights=c(3.5,1),padding=0,align='v'),file='../output/paperPlot1.png',height=13,width=15)
+
 
 
 cat(date(),'\n')
