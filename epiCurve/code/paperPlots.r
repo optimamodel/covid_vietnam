@@ -233,13 +233,13 @@ miles[Region=='National',c('y0','y1'):=list(tfac*y0,tfac*y1)]
 nwid=2
 dcol='maroon'
 
-pnat<-ggplot(national,aes(x=refdate))+geom_line(aes(y=totcases),lwd=nwid)+scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + ylab("Cumulative Confirmed Cases")+xlab("Date") + geom_label(data=miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),hjust=0.5,vjust=0.5,lineheight=lheight) + dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ scale_size(range = 3.5*c(1,bigsize))+theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
+pnat<-ggplot(national,aes(x=refdate))+geom_line(aes(y=totcases),lwd=nwid)+scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + ylab("Cumulative Confirmed Cases")+xlab("") + geom_label(data=miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),hjust=0.5,vjust=0.5,lineheight=lheight) + dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ scale_size(range = 3.5*c(1,bigsize))+theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
 
 ggsave(pnat,file='../output/paperPlot1a.png',height=7,width=14)
 
 
-p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+facet_grid(relevel(factor(Region),'Northern')~.) +milearrow(miles[Region!='National',])+miletext(miles[Region!='National',])+textcol+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
-
+p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+facet_grid(relevel(factor(Region),'Northern')~.) +milearrow(miles[Region!='National',])+miletext(miles[Region!='National',])+textcol
+#+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
 
 p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ milearrow(miles[Region=='National',])+geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + dates(miles)+dates2+textcol+blank+scale_y_continuous(limits=c(14,60),expand=c(0,0))+theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
