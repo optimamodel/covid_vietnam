@@ -72,7 +72,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
         cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}},do_plot=False), # Assume these were elevated due to the hospital outbreak but then would return to normal
 
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
-        cv.change_beta(days=0, changes=[0.25], trigger=cv.trigger('date_diagnosed', 5)),
+        cv.change_beta(days=0, changes=0.42, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
 
         # Close schools and workplaces
         cv.clip_edges(days=['2020-07-28', '2020-09-14'], changes=[0.1, 1.], layers=['s'], do_plot=True),
@@ -96,10 +96,10 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
 T = sc.tic()
 cv.check_save_version()
 
-whattorun = ['quickfit', 'fitting', 'mainscens', 'multiscens'][1]
-do_plot = True
+whattorun = ['quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'mainscens', 'multiscens'][1]
+do_plot = False
 do_save = True
-save_sim = True
+save_sim = False
 n_runs = 400
 betas = [i / 10000 for i in range(135, 156, 1)]
 today = '2020-10-15'
@@ -152,11 +152,53 @@ elif whattorun=='fitting':
         fitsummary['percentlt100'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<100])
     sc.saveobj(f'fitsummary.obj',fitsummary)
 
+elif whattorun=='finialisecalibration':
+    fitsummary = sc.loadobj('fitsummary1.obj')
+    sims = []
+    for bn, beta in enumerate(betas):
+        s0 = make_sim(seed=1, beta=beta, end_day=today)
+        goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 63]
+        if len(goodseeds) > 0:
+            for seed in goodseeds:
+                sim = s0.copy()
+                sim['rand_seed'] = seed
+                sim.set_seed()
+                sims.append(sim)
+    msim = cv.MultiSim(sims)
+    msim.run(keep_people=True)
+
+    # Calculate and store some transmission dynamics
+#    for sim in msim.sims:
+#        tt = sim.make_transtree()
+#        n_targets = tt.count_targets()
+
+
+    to_plot = sc.objdict({
+        'Cumulative diagnoses': ['cum_diagnoses'],
+        'Cumulative infections': ['cum_infections'],
+        'New infections': ['new_infections'],
+        'Daily diagnoses': ['new_diagnoses'],
+        'Cumulative deaths': ['cum_deaths'],
+        'Daily deaths': ['new_deaths'],
+    })
+
+    if save_sim:
+        msim.save(f'vietnam_sim.obj', keep_people=True)
+    if do_plot:
+        msim.reduce()
+        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+
+elif whattorun=='transmissionanalysis':
+    msim = sc.loadobj('vietnam_sim.obj')
+
+    # Analyse the undiagnosed people: who are they, why didn't they get diagnosed?
+    diag_inds = cvu.true(sim.people.diagnosed)
+
 
 elif whattorun=='mainscens':
     # Load good seeds
-    fitsummary = sc.loadobj('fitsummary.obj')
-    #betas = [i / 10000 for i in range(140, 151, 1)]
+    fitsummary = sc.loadobj('fitsummary1.obj')
     for policy in ['remain','drop','dynamic']:
         sims = []
         sc.blank()
@@ -165,7 +207,7 @@ elif whattorun=='mainscens':
         print('---------------\n')
         for bn,beta in enumerate(betas):
             s0 = make_sim(seed=1, beta=beta, policy=policy)
-            goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 100]
+            goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 63]
             if len(goodseeds)>0:
                 for seed in goodseeds:
                     sim = s0.copy()
@@ -184,7 +226,7 @@ elif whattorun=='mainscens':
             })
 
         if save_sim:
-            msim.save(f'vietnam_sim_{policy}.obj')
+            msim.save(f'results19nov/vietnam_sim_{policy}.obj')
         if do_plot:
             msim.reduce()
             msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam_{policy}.png',
@@ -203,7 +245,7 @@ elif whattorun=='multiscens':
         print('---------------\n')
         for bn,beta in enumerate(betas):
             s0 = make_sim(seed=1, beta=beta, policy='dynamic', threshold=threshold)
-            goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 100]
+            goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 63]
             if len(goodseeds)>0:
                 for seed in goodseeds:
                     sim = s0.copy()

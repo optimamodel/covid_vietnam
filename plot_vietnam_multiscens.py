@@ -68,9 +68,12 @@ for pn in range(nplots):
 
         @ticker.FuncFormatter
         def date_formatter(x, pos):
-            return (cv.date('2020-11-15') + dt.timedelta(days=x)).strftime('%b-%d')
+            return (cv.date('2020-11-15') + dt.timedelta(days=x)).strftime('%b-%y')
 
         ax[pn].xaxis.set_major_formatter(date_formatter)
+
+        datemarks = pl.array([sim.day('2020-12-01'), sim.day('2021-01-01'), sim.day('2021-02-01'), sim.day('2021-03-01')]) * 1. - sim.day('2020-11-15')
+        ax[pn].set_xticks(datemarks)
 
     if pn==1:
         for tn, t in enumerate(thresholds):
