@@ -84,7 +84,7 @@ df2 <- df  %>% group_by(Region, Source) %>% summarise(total = sum(new_diagnoses)
 
 
 # Make dataframe with data from central region 
-diagnoses <- data.frame(diagdate = seq(as.Date("2020/7/1"), as.Date("2020/8/22"), "days")) %>%
+diagnoses <- data.frame(diagdate = seq(as.Date("2020/6/15"), as.Date("2020/8/22"), "days")) %>%
   left_join(rawcases %>% filter(Region=="Central", Source=="Domestic") %>% count(diagdate))  %>%
   rename(date=diagdate,new_diagnoses=n) %>% replace(is.na(.), 0)
 
@@ -97,9 +97,9 @@ central_codes <- read_excel("Testing_COVID19_HK_22Aug.xlsx", skip = 2) %>%
   rename(en_name="...3" ,Region="...4" ) %>%
   filter(Region=="Central") 
 
-tests <- data.frame(testdate = seq(as.Date("2020/7/1"), as.Date("2020/8/22"), "days"))
+tests <- data.frame(testdate = seq(as.Date("2020/6/15"), as.Date("2020/8/22"), "days"))
 tests$new_tests = NA
-dates <- c("1_7","2_7","3_7","4_7","5_7","6_7","7_7","8_7","9_7","10_7","11_7","12_7","13_7","14_7","15_7","16_7","17_7","18_7","19_7","20_7","21_7","22_7","23_7","24_7","25_7","26_7","27_7","28_7","29_7","30_7","31_7","1_8","2_8","3_8","4_8","5_8","6_8","7_8","8_8","9_8","10_8","11_8","12_8","13_8","14_8","15_8","16_8","17_8","18_8","19_8","20_8","21_8","22_8")
+dates <- c("15_6", "16_6", "17_6", "18_6", "19_6", "20_6", "21_6", "22_6", "23_6", "24_6", "25_6", "26_6", "27_6", "28_6", "29_6", "30_6","1_7","2_7","3_7","4_7","5_7","6_7","7_7","8_7","9_7","10_7","11_7","12_7","13_7","14_7","15_7","16_7","17_7","18_7","19_7","20_7","21_7","22_7","23_7","24_7","25_7","26_7","27_7","28_7","29_7","30_7","31_7","1_8","2_8","3_8","4_8","5_8","6_8","7_8","8_8","9_8","10_8","11_8","12_8","13_8","14_8","15_8","16_8","17_8","18_8","19_8","20_8","21_8","22_8")
 
 #%>% replace(is.na(.), 0) %>% 
 running_total = c()

@@ -76,6 +76,14 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
     pl.fill_between(tvec[startday:end], low[startday:end], high[startday:end], facecolor=color, alpha=0.2, label=fill_label)
     pl.plot(tvec[startday:end], best[startday:end], c=color, label=label, lw=4, alpha=1.0)
 
+    if key == 'cum_infections':
+        print(f'Estimated {which} on July 25: {best[sim.day("2020-07-25")]} (95%: {low[sim.day("2020-07-25")]}-{high[sim.day("2020-07-25")]})')
+        print(f'Estimated {which} overall: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
+    elif key=='n_infectious':
+        peakday = sc.findinds(best,max(best))
+        peakval = max(best)
+        print(f'Estimated peak {which} on {sim.date(peakday[0])}: {peakval} (95%: {low[peakday]}-{high[peakday]})')
+
     sc.setylim()
 
     xmin,xmax = ax.get_xlim()

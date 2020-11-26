@@ -3,6 +3,7 @@ Run calibration for central Vietnam
 '''
 
 import covasim as cv
+import covasim.utils as cvu
 import sciris as sc
 import pylab as pl
 import numpy as np
@@ -50,7 +51,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
     # Define import array
     import_start = sim.day('2020-07-20')
     import_end   = sim.day('2020-07-25')
-    border_start = sim.day('2020-11-15')
+    border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
                               pl.ones(import_end-import_start)*20, # 20 imports/day over the first importation window
@@ -64,7 +65,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'], start_day=sim.day('2020-07-01'), end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'], start_day=0, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
         cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.5, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
@@ -84,7 +85,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
     if policy == 'dynamic':
         pars['interventions'] += [cv.change_beta(days=140, changes=[0.25], trigger=cv.trigger('date_diagnosed', threshold)),
                                   cv.clip_edges(days=[140], changes=[0.1], layers=['s'], trigger=cv.trigger('date_diagnosed', threshold)),
-                                  cv.clip_edges(days=[140], changes=[0.5], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
+                                  cv.clip_edges(days=[140], changes=[0.1], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
                                   ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -96,13 +97,103 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
 T = sc.tic()
 cv.check_save_version()
 
-whattorun = ['quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'mainscens', 'multiscens'][1]
+whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'mainscens', 'multiscens'][2]
 do_plot = False
 do_save = True
 save_sim = False
 n_runs = 400
 betas = [i / 10000 for i in range(135, 156, 1)]
 today = '2020-10-15'
+
+# Quickest possible calibration
+if whattorun=='quickestfit':
+    sim = make_sim(seed=1, beta=0.0145, end_day=today)
+    sim.run(keep_people=True)
+    tt = sim.make_transtree()
+
+    # Calculate
+    asymp_count = 0
+    symp_counts = {}
+    minind = -5
+    maxind = 15
+    for _, target_ind in tt.transmissions:
+        dd = tt.detailed[target_ind]
+        date = dd['date']
+        delta = sim.rescale_vec[date] # Increment counts by this much
+        if dd['s']:
+            if tt.detailed[dd['source']]['date'] <= date and tt.detailed[dd['source']]['date'] >= 40 and np.isnan(dd['t']['date_diagnosed']) and np.isnan(dd['s']['date_symptomatic']): # Skip dynamical scaling reinfections
+                tdate = dd['t']['date_symptomatic']
+                if np.isnan(tdate):
+                    asymp_count += delta
+                else:
+                    ind = int(date - tdate)
+                    if ind not in symp_counts:
+                        symp_counts[ind] = 0
+                    symp_counts[ind] += delta
+
+    asymp_prop = asymp_count / (asymp_count + sum(symp_counts.values()))
+
+    # Transmission by layer
+    layer_keys = list(sim.people.layer_keys())
+    layer_mapping = {k: i for i, k in enumerate(layer_keys)}
+    n_layers = len(layer_keys)
+    layer_counts = np.zeros((sim.npts, n_layers))
+    for source_ind, target_ind in tt.transmissions:
+        dd = tt.detailed[target_ind]
+        if np.isnan(dd['t']['date_diagnosed']):
+            date = dd['date']
+            layer_num = layer_mapping[dd['layer']]
+            layer_counts[date, layer_num] += sim.rescale_vec[date]
+
+    # # Calculate the proportion of undiagnosed people that didn't transmit
+    # n_targets = np.nan + np.zeros(sim['pop_size'])
+    # n_targets_all = np.nan + np.zeros(sim['pop_size'])
+    # for i in range(sim['pop_size']):
+    #     if tt.sources[i] is not None:
+    #         n_targets_all[i] = len(tt.targets[i])
+    #         if np.isnan(sim.people[i].date_diagnosed): # They weren't diagnosed: let's see how many people they transmitted to
+    #             n_targets[i] = len(tt.targets[i])
+    # n_target_inds = sc.findinds(~np.isnan(n_targets))
+    # n_targets = n_targets[n_target_inds]
+    #
+    # n_target_all_inds = sc.findinds(~np.isnan(n_targets_all))
+    # n_targets_all = n_targets_all[n_target_all_inds]
+    #
+    # # Analysis for undiagnosed infections
+    # max_infections = n_targets.max()
+    # bins = np.arange(0, max_infections + 2)
+    # counts = np.histogram(n_targets, bins)[0]
+    # bins = bins[:-1]  # Remove last bin since it's an edge
+    # total_counts = counts * bins
+    # total_counts = total_counts / total_counts.sum() * 100
+    #
+    # # Analysis for all infections
+    # max_infections_all = n_targets_all.max()
+    # bins_all = np.arange(0, max_infections_all + 2)
+    # counts_all = np.histogram(n_targets_all, bins_all)[0]
+    # bins_all = bins_all[:-1]  # Remove last bin since it's an edge
+    # total_counts_all = counts_all * bins_all
+    # total_counts_all = total_counts_all / total_counts_all.sum() * 100
+
+    # Other stats
+    ever_exp = cvu.defined(sim.people.date_exposed)
+    exp_postjul25 = sim.people.uid[sim.people.date_exposed>40]
+    ever_symp = cvu.defined(sim.people.date_symptomatic)
+    symp_postjul25 = sim.people.uid[sim.people.date_symptomatic>40]
+    asyms = np.setdiff1d(ever_exp, ever_symp)
+    asyms_postjul25 = np.setdiff1d(exp_postjul25, symp_postjul25)
+    diag_inds = cvu.true(sim.people.diagnosed)
+    diag_postjul25 = sim.people.uid[sim.people.date_diagnosed>40]
+    undiag_inds = np.setdiff1d(ever_exp, diag_inds)
+    undiag_postjul25 = np.setdiff1d(exp_postjul25, diag_postjul25)
+
+    diag_symp = cvu.true(sim.people.diagnosed[cvu.defined(sim.people.date_symptomatic)]) # Diagnosed and symptomatic
+    diag_asymp = cvu.true(sim.people.diagnosed[asyms]) # Diagnosed and asymptomatic
+    undiag_symp = np.intersect1d(undiag_inds, ever_symp) # Undiagnosed and symptomatic
+    undiag_asymp = np.intersect1d(undiag_inds, asyms) # Undiagnosed and asymptomatic
+
+
+    tt.n_targets
 
 # Quick calibration
 if whattorun=='quickfit':
@@ -124,6 +215,8 @@ if whattorun=='quickfit':
         'Daily diagnoses': ['new_diagnoses'],
         'Cumulative deaths': ['cum_deaths'],
         'Daily deaths': ['new_deaths'],
+        'Daily tests': ['new_tests'],
+        'Cumulative tests': ['cum_tests'],
         })
 
     msim.plot(to_plot=to_plot, do_save=True, do_show=False, fig_path=f'vietnam.png',
@@ -151,6 +244,7 @@ elif whattorun=='fitting':
         fitsummary['percentlt75'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<75])
         fitsummary['percentlt100'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<100])
     sc.saveobj(f'fitsummary.obj',fitsummary)
+
 
 elif whattorun=='finialisecalibration':
     fitsummary = sc.loadobj('fitsummary1.obj')
@@ -193,8 +287,19 @@ elif whattorun=='transmissionanalysis':
     msim = sc.loadobj('vietnam_sim.obj')
 
     # Analyse the undiagnosed people: who are they, why didn't they get diagnosed?
+    ever_exp = cvu.defined(sim.people.date_exposed)
+    ever_symp = cvu.defined(sim.people.date_symptomatic)
+    asyms = np.setdiff1d(ever_exp, ever_symp)
+    tested_inds = cvu.true(sim.people.tested)
     diag_inds = cvu.true(sim.people.diagnosed)
+    undiag_inds = np.setdiff1d(ever_exp, diag_inds)
 
+    diag_symp = cvu.true(sim.people.diagnosed[cvu.defined(sim.people.date_symptomatic)]) # Diagnosed and symptomatic
+    diag_asymp = cvu.true(sim.people.diagnosed[asyms]) # Diagnosed and asymptomatic
+    undiag_symp = np.intersect1d(undiag_inds, ever_symp) # Undiagnosed and symptomatic
+    undiag_asymp = np.intersect1d(undiag_inds, asyms) # Undiagnosed and asymptomatic
+
+    cvu.defined(sim.people.date_known_contact)
 
 elif whattorun=='mainscens':
     # Load good seeds
