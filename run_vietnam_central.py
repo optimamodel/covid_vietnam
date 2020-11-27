@@ -10,7 +10,7 @@ import numpy as np
 
 
 # Make the sim
-def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
+def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None):
 
     start_day = '2020-06-15'
     if end_day is None: end_day = '2021-02-28'
@@ -54,7 +54,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
-                              pl.ones(import_end-import_start)*20, # 20 imports/day over the first importation window
+                              pl.ones(import_end-import_start)*10, # 20 imports/day over the first importation window
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
                               cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
@@ -73,11 +73,12 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
         cv.dynamic_pars({'rel_death_prob':{'days':sim.day('2020-08-31'), 'vals':1.0},'rel_crit_prob':{'days':sim.day('2020-08-31'), 'vals':1.0}},do_plot=False), # Assume these were elevated due to the hospital outbreak but then would return to normal
 
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
-        cv.change_beta(days=0, changes=0.42, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
+        #cv.change_beta(days=0, changes=0.25, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
+        cv.change_beta(days=0, changes=change, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
 
         # Close schools and workplaces
         cv.clip_edges(days=['2020-07-28', '2020-09-14'], changes=[0.1, 1.], layers=['s'], do_plot=True),
-        cv.clip_edges(days=['2020-07-28', '2020-09-05'], changes=[0.5, 1.], layers=['w'], do_plot=False),
+        cv.clip_edges(days=['2020-07-28', '2020-09-05'], changes=[0.25, 1.], layers=['w'], do_plot=False),
         ]
 
     if policy != 'remain':
@@ -85,7 +86,7 @@ def make_sim(seed, beta, policy='remain', threshold=5, end_day=None):
     if policy == 'dynamic':
         pars['interventions'] += [cv.change_beta(days=140, changes=[0.25], trigger=cv.trigger('date_diagnosed', threshold)),
                                   cv.clip_edges(days=[140], changes=[0.1], layers=['s'], trigger=cv.trigger('date_diagnosed', threshold)),
-                                  cv.clip_edges(days=[140], changes=[0.1], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
+                                  cv.clip_edges(days=[140], changes=[0.25], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
                                   ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -101,8 +102,9 @@ whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'tran
 do_plot = False
 do_save = True
 save_sim = False
-n_runs = 400
-betas = [i / 10000 for i in range(135, 156, 1)]
+n_runs = 100
+betas = [i / 10000 for i in range(135, 155, 2)]
+changes = [i / 100 for i in range(26, 80, 7)]
 today = '2020-10-15'
 
 # Quickest possible calibration
@@ -231,18 +233,19 @@ elif whattorun=='fitting':
     fitsummary['percentlt100'] = []
 
     for beta in betas:
-        s0 = make_sim(seed=1, beta=beta, end_day=today)
-        sims = []
-        for seed in range(n_runs):
-            sim = s0.copy()
-            sim['rand_seed'] = seed
-            sim.set_seed()
-            sims.append(sim)
-        msim = cv.MultiSim(sims)
-        msim.run()
-        fitsummary['allmismatches'].append([sim.compute_fit().mismatch for sim in msim.sims])
-        fitsummary['percentlt75'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<75])
-        fitsummary['percentlt100'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<100])
+        for change in changes:
+            s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
+            sims = []
+            for seed in range(n_runs):
+                sim = s0.copy()
+                sim['rand_seed'] = seed
+                sim.set_seed()
+                sims.append(sim)
+    msim = cv.MultiSim(sims)
+    msim.run()
+    fitsummary['allmismatches'].append([sim.compute_fit().mismatch for sim in msim.sims])
+    fitsummary['percentlt75'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<75])
+    fitsummary['percentlt100'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<100])
     sc.saveobj(f'fitsummary.obj',fitsummary)
 
 

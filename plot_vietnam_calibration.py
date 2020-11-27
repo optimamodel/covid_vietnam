@@ -23,7 +23,7 @@ simsfile = sc.loadobj(simsfilepath)
 def format_ax(ax, sim, key=None):
     @ticker.FuncFormatter
     def date_formatter(x, pos):
-        return (sim['start_day'] + dt.timedelta(days=x)).strftime('%b-%y')
+        return (sim['start_day'] + dt.timedelta(days=x)).strftime('%b')
     ax.xaxis.set_major_formatter(date_formatter)
     pl.xlim([0, sim.day(today)])
     sc.boxoff()
