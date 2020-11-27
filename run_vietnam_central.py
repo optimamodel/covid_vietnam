@@ -232,10 +232,10 @@ elif whattorun=='fitting':
     fitsummary['percentlt75'] = []
     fitsummary['percentlt100'] = []
 
+    sims = []
     for beta in betas:
         for change in changes:
             s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
-            sims = []
             for seed in range(n_runs):
                 sim = s0.copy()
                 sim['rand_seed'] = seed
