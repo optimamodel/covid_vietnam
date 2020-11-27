@@ -227,19 +227,16 @@ if whattorun=='quickfit':
 
 # Iterate for calibration
 elif whattorun=='fitting':
-    fitsummary = {}
-    fitsummary['allmismatches'] = []
-    fitsummary['percentlt75'] = []
-    fitsummary['percentlt100'] = []
-
-    sims = []
     for beta in betas:
+        fitsummary = []
+
         for change in changes:
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}... ')
             print('---------------\n')
             s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
+            sims = []
             for seed in range(n_runs):
                 sim = s0.copy()
                 sim['rand_seed'] = seed
@@ -247,10 +244,9 @@ elif whattorun=='fitting':
                 sims.append(sim)
             msim = cv.MultiSim(sims)
             msim.run()
-            fitsummary['allmismatches'].append([sim.compute_fit().mismatch for sim in msim.sims])
-            fitsummary['percentlt75'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<75])
-            fitsummary['percentlt100'].append([i for i in range(n_runs) if fitsummary['allmismatches'][-1][i]<100])
-    sc.saveobj(f'fitsummary.obj',fitsummary)
+            fitsummary.append([sim.compute_fit().mismatch for sim in msim.sims])
+
+        sc.saveobj(f'fitsummary{beta}.obj',fitsummary)
 
 
 elif whattorun=='finialisecalibration':
