@@ -237,7 +237,7 @@ elif whattorun=='fitting':
             print('---------------\n')
             s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
             sims = []
-            for seed in range(n_runs):
+            for seed in range(100,100+n_runs):
                 sim = s0.copy()
                 sim['rand_seed'] = seed
                 sim.set_seed()
@@ -250,19 +250,24 @@ elif whattorun=='fitting':
 
 
 elif whattorun=='finialisecalibration':
-    fitsummary = sc.loadobj('fitsummary1.obj')
     sims = []
     for bn, beta in enumerate(betas):
-        s0 = make_sim(seed=1, beta=beta, end_day=today)
-        goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 63]
-        if len(goodseeds) > 0:
-            for seed in goodseeds:
-                sim = s0.copy()
-                sim['rand_seed'] = seed
-                sim.set_seed()
-                sims.append(sim)
-    msim = cv.MultiSim(sims)
-    msim.run(keep_people=True)
+        fitsummary = sc.loadobj(f'searches/fitsummary{beta}.obj')
+        for cn, change in enumerate(changes):
+            goodseeds = [i for i in range(n_runs) if fitsummary[cn][i] < 150]
+            sc.blank()
+            print('---------------\n')
+            print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
+            print('---------------\n')
+            if len(goodseeds) > 0:
+                s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
+                for seed in goodseeds:
+                    sim = s0.copy()
+                    sim['rand_seed'] = seed
+                    sim.set_seed()
+                    sims.append(sim)
+#    msim = cv.MultiSim(sims)
+#    msim.run(keep_people=True)
 
     # Calculate and store some transmission dynamics
 #    for sim in msim.sims:
@@ -270,21 +275,21 @@ elif whattorun=='finialisecalibration':
 #        n_targets = tt.count_targets()
 
 
-    to_plot = sc.objdict({
-        'Cumulative diagnoses': ['cum_diagnoses'],
-        'Cumulative infections': ['cum_infections'],
-        'New infections': ['new_infections'],
-        'Daily diagnoses': ['new_diagnoses'],
-        'Cumulative deaths': ['cum_deaths'],
-        'Daily deaths': ['new_deaths'],
-    })
-
-    if save_sim:
-        msim.save(f'vietnam_sim.obj', keep_people=True)
-    if do_plot:
-        msim.reduce()
-        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
-                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+    # to_plot = sc.objdict({
+    #     'Cumulative diagnoses': ['cum_diagnoses'],
+    #     'Cumulative infections': ['cum_infections'],
+    #     'New infections': ['new_infections'],
+    #     'Daily diagnoses': ['new_diagnoses'],
+    #     'Cumulative deaths': ['cum_deaths'],
+    #     'Daily deaths': ['new_deaths'],
+    # })
+    #
+    # if save_sim:
+    #     msim.save(f'vietnam_sim.obj', keep_people=True)
+    # if do_plot:
+    #     msim.reduce()
+    #     msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+    #               legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
 elif whattorun=='transmissionanalysis':
     msim = sc.loadobj('vietnam_sim.obj')
