@@ -20,7 +20,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': 10,
+            'pop_infected': 8,
             'pop_scale': pop_scale,
             'rand_seed': seed,
             'beta': beta,#0.0145
@@ -49,8 +49,8 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
-    import_start = sim.day('2020-07-20')
-    import_end   = sim.day('2020-07-25')
+    import_start = sim.day('2020-07-10')
+    import_end   = sim.day('2020-07-15')
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
@@ -65,7 +65,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'], start_day=0, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
         cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.5, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
@@ -78,15 +78,15 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
         # Close schools and workplaces
         cv.clip_edges(days=['2020-07-28', '2020-09-14'], changes=[0.1, 1.], layers=['s'], do_plot=True),
-        cv.clip_edges(days=['2020-07-28', '2020-09-05'], changes=[0.25, 1.], layers=['w'], do_plot=False),
+        cv.clip_edges(days=['2020-07-28', '2020-09-05'], changes=[0.1, 1.], layers=['w'], do_plot=False),
         ]
 
     if policy != 'remain':
         pars['interventions'] += [cv.change_beta(days=80, changes=[1.0], trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28))]
     if policy == 'dynamic':
-        pars['interventions'] += [cv.change_beta(days=140, changes=[0.25], trigger=cv.trigger('date_diagnosed', threshold)),
+        pars['interventions'] += [cv.change_beta(days=140, changes=[change], trigger=cv.trigger('date_diagnosed', threshold)),
                                   cv.clip_edges(days=[140], changes=[0.1], layers=['s'], trigger=cv.trigger('date_diagnosed', threshold)),
-                                  cv.clip_edges(days=[140], changes=[0.25], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
+                                  cv.clip_edges(days=[140], changes=[0.1], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
                                   ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -99,7 +99,7 @@ T = sc.tic()
 cv.check_save_version()
 
 whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'mainscens', 'multiscens'][2]
-do_plot = False
+do_plot = True
 do_save = True
 save_sim = False
 n_runs = 100
@@ -199,7 +199,7 @@ if whattorun=='quickestfit':
 
 # Quick calibration
 if whattorun=='quickfit':
-    s0 = make_sim(seed=1, beta=0.0145, end_day=today)
+    s0 = make_sim(seed=1, beta=0.0145, change=0.3, end_day=today)
     sims = []
     for seed in range(6):
         sim = s0.copy()
@@ -266,8 +266,8 @@ elif whattorun=='finialisecalibration':
                     sim['rand_seed'] = seed
                     sim.set_seed()
                     sims.append(sim)
-#    msim = cv.MultiSim(sims)
-#    msim.run(keep_people=True)
+    msim = cv.MultiSim(sims)
+    msim.run(keep_people=True)
 
     # Calculate and store some transmission dynamics
 #    for sim in msim.sims:
@@ -275,21 +275,21 @@ elif whattorun=='finialisecalibration':
 #        n_targets = tt.count_targets()
 
 
-    # to_plot = sc.objdict({
-    #     'Cumulative diagnoses': ['cum_diagnoses'],
-    #     'Cumulative infections': ['cum_infections'],
-    #     'New infections': ['new_infections'],
-    #     'Daily diagnoses': ['new_diagnoses'],
-    #     'Cumulative deaths': ['cum_deaths'],
-    #     'Daily deaths': ['new_deaths'],
-    # })
-    #
-    # if save_sim:
-    #     msim.save(f'vietnam_sim.obj', keep_people=True)
-    # if do_plot:
-    #     msim.reduce()
-    #     msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
-    #               legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+    to_plot = sc.objdict({
+        'Cumulative diagnoses': ['cum_diagnoses'],
+        'Cumulative infections': ['cum_infections'],
+        'New infections': ['new_infections'],
+        'Daily diagnoses': ['new_diagnoses'],
+        'Cumulative deaths': ['cum_deaths'],
+        'Daily deaths': ['new_deaths'],
+    })
+
+    if save_sim:
+        msim.save(f'vietnam_sim.obj', keep_people=True)
+    if do_plot:
+        msim.reduce()
+        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
 elif whattorun=='transmissionanalysis':
     msim = sc.loadobj('vietnam_sim.obj')
