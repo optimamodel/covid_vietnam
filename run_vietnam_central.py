@@ -20,7 +20,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': 10,
+            'pop_infected': 15,
             'pop_scale': pop_scale,
             'rand_seed': seed,
             'beta': beta,#0.0145
@@ -49,12 +49,12 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
-    import_start = sim.day('2020-07-01')
-    import_end   = sim.day('2020-07-06')
+    import_start = sim.day('2020-07-05')
+    import_end   = sim.day('2020-07-10')
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
-                              pl.ones(import_end-import_start)*15, # 20 imports/day over the first importation window
+                              pl.ones(import_end-import_start)*10, # 20 imports/day over the first importation window
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
                               cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
@@ -66,7 +66,8 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     pars['interventions'] = [
         # Testing and tracing
         cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.15, asymp_quar_prob=0.4, do_plot=False),
+        #cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-07-25'), symp_test=120, quar_test=120, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.1, asymp_quar_prob=0.2, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Change death and critical probabilities
@@ -101,8 +102,9 @@ cv.check_save_version()
 whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'mainscens', 'multiscens'][2]
 do_plot = True
 do_save = True
-save_sim = False
-n_runs = 100
+save_sim = True
+keep_people = False
+n_runs = 500
 #betas = [i / 10000 for i in range(135, 155, 2)]
 #changes = [i / 100 for i in range(26, 80, 7)]
 today = '2020-10-15'
@@ -199,9 +201,9 @@ if whattorun=='quickestfit':
 
 # Quick calibration
 if whattorun=='quickfit':
-    s0 = make_sim(seed=1, beta=0.011, change=0.42, end_day=today)
+    s0 = make_sim(seed=1, beta=0.0115, change=0.42, end_day=today)
     sims = []
-    for seed in range(6):
+    for seed in range(10):
         sim = s0.copy()
         sim['rand_seed'] = seed
         sim.set_seed()
@@ -228,7 +230,7 @@ if whattorun=='quickfit':
 # Iterate for calibration
 elif whattorun=='fitting':
     highbetas = [i / 10000 for i in range(130, 135, 1)]
-    midbetas  = [i / 10000 for i in range(106, 116, 2)]
+    midbetas  = [i / 10000 for i in range(110, 120, 2)]
     betas = [highbetas, midbetas][1]
     change = [0.26, 0.42][1]
     fitsummary = []
@@ -254,11 +256,13 @@ elif whattorun=='fitting':
 elif whattorun=='finialisecalibration':
     sims = []
     changes = [0.26]
-    betas = [i / 10000 for i in range(130, 135, 1)]
+    highbetas = [i / 10000 for i in range(130, 135, 1)]
+    midbetas  = [i / 10000 for i in range(106, 116, 2)]
+    betas = [highbetas, midbetas][0]
     for cn, change in enumerate(changes):
         fitsummary = sc.loadobj(f'searches/fitsummary{change}.obj')
         for bn, beta in enumerate(betas):
-            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 100]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 80]
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
@@ -270,8 +274,8 @@ elif whattorun=='finialisecalibration':
                     sim['rand_seed'] = seed
                     sim.set_seed()
                     sims.append(sim)
-#    msim = cv.MultiSim(sims)
-#    msim.run(keep_people=True)
+    msim = cv.MultiSim(sims)
+    msim.run(keep_people=keep_people)
 
     # Calculate and store some transmission dynamics
 #    for sim in msim.sims:
@@ -288,12 +292,12 @@ elif whattorun=='finialisecalibration':
         'Daily deaths': ['new_deaths'],
     })
 
-#    if save_sim:
-#        msim.save(f'vietnam_sim.obj', keep_people=True)
-#    if do_plot:
-#        msim.reduce()
-#        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
-#                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+    if save_sim:
+        msim.save(f'vietnam_sim.obj', keep_people=keep_people)
+    if do_plot:
+        msim.reduce()
+        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
 elif whattorun=='transmissionanalysis':
     msim = sc.loadobj('vietnam_sim.obj')
