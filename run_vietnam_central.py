@@ -20,7 +20,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': 8,
+            'pop_infected': 10,
             'pop_scale': pop_scale,
             'rand_seed': seed,
             'beta': beta,#0.0145
@@ -54,7 +54,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
-                              pl.ones(import_end-import_start)*10, # 20 imports/day over the first importation window
+                              pl.ones(import_end-import_start)*15, # 20 imports/day over the first importation window
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
                               cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
@@ -65,8 +65,8 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.2, asymp_quar_prob=0.5, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=80, quar_test=80, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.1, asymp_quar_prob=0.3, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Change death and critical probabilities
@@ -103,8 +103,8 @@ do_plot = True
 do_save = True
 save_sim = False
 n_runs = 100
-betas = [i / 10000 for i in range(135, 155, 2)]
-changes = [i / 100 for i in range(26, 80, 7)]
+#betas = [i / 10000 for i in range(135, 155, 2)]
+#changes = [i / 100 for i in range(26, 80, 7)]
 today = '2020-10-15'
 
 # Quickest possible calibration
@@ -199,7 +199,7 @@ if whattorun=='quickestfit':
 
 # Quick calibration
 if whattorun=='quickfit':
-    s0 = make_sim(seed=1, beta=0.0145, change=0.3, end_day=today)
+    s0 = make_sim(seed=1, beta=0.0132, change=0.26, end_day=today)
     sims = []
     for seed in range(6):
         sim = s0.copy()
@@ -227,26 +227,27 @@ if whattorun=='quickfit':
 
 # Iterate for calibration
 elif whattorun=='fitting':
+    lowbetas = [i / 10000 for i in range(130, 135, 1)]
+    betas = lowbetas
+    change = [0.26][0]
+    fitsummary = []
+    sims = []
     for beta in betas:
-        fitsummary = []
+        sc.blank()
+        print('---------------\n')
+        print(f'Beta: {beta}, change: {change}... ')
+        print('---------------\n')
+        s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
+        for seed in range(n_runs):
+            sim = s0.copy()
+            sim['rand_seed'] = seed
+            sim.set_seed()
+            sims.append(sim)
+        msim = cv.MultiSim(sims)
+        msim.run()
+        fitsummary.append([sim.compute_fit().mismatch for sim in msim.sims])
 
-        for change in changes:
-            sc.blank()
-            print('---------------\n')
-            print(f'Beta: {beta}, change: {change}... ')
-            print('---------------\n')
-            s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
-            sims = []
-            for seed in range(100,100+n_runs):
-                sim = s0.copy()
-                sim['rand_seed'] = seed
-                sim.set_seed()
-                sims.append(sim)
-            msim = cv.MultiSim(sims)
-            msim.run()
-            fitsummary.append([sim.compute_fit().mismatch for sim in msim.sims])
-
-        sc.saveobj(f'fitsummary{beta}.obj',fitsummary)
+    sc.saveobj(f'fitsummary{change}.obj',fitsummary)
 
 
 elif whattorun=='finialisecalibration':
@@ -254,7 +255,7 @@ elif whattorun=='finialisecalibration':
     for bn, beta in enumerate(betas):
         fitsummary = sc.loadobj(f'searches/fitsummary{beta}.obj')
         for cn, change in enumerate(changes):
-            goodseeds = [i for i in range(n_runs) if fitsummary[cn][i] < 150]
+            goodseeds = [i for i in range(n_runs) if fitsummary[cn][i] < 100]
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
