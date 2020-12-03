@@ -232,13 +232,13 @@ elif whattorun=='fitting':
     betas = [highbetas, midbetas][1]
     change = [0.26, 0.42][1]
     fitsummary = []
-    sims = []
     for beta in betas:
         sc.blank()
         print('---------------\n')
         print(f'Beta: {beta}, change: {change}... ')
         print('---------------\n')
         s0 = make_sim(seed=1, beta=beta, change=change, end_day=today)
+        sims = []
         for seed in range(n_runs):
             sim = s0.copy()
             sim['rand_seed'] = seed
@@ -253,10 +253,12 @@ elif whattorun=='fitting':
 
 elif whattorun=='finialisecalibration':
     sims = []
-    for bn, beta in enumerate(betas):
-        fitsummary = sc.loadobj(f'searches/fitsummary{beta}.obj')
-        for cn, change in enumerate(changes):
-            goodseeds = [i for i in range(n_runs) if fitsummary[cn][i] < 100]
+    changes = [0.26]
+    betas = [i / 10000 for i in range(130, 135, 1)]
+    for cn, change in enumerate(changes):
+        fitsummary = sc.loadobj(f'searches/fitsummary{change}.obj')
+        for bn, beta in enumerate(betas):
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 100]
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
@@ -268,8 +270,8 @@ elif whattorun=='finialisecalibration':
                     sim['rand_seed'] = seed
                     sim.set_seed()
                     sims.append(sim)
-    msim = cv.MultiSim(sims)
-    msim.run(keep_people=True)
+#    msim = cv.MultiSim(sims)
+#    msim.run(keep_people=True)
 
     # Calculate and store some transmission dynamics
 #    for sim in msim.sims:
@@ -286,12 +288,12 @@ elif whattorun=='finialisecalibration':
         'Daily deaths': ['new_deaths'],
     })
 
-    if save_sim:
-        msim.save(f'vietnam_sim.obj', keep_people=True)
-    if do_plot:
-        msim.reduce()
-        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
-                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+#    if save_sim:
+#        msim.save(f'vietnam_sim.obj', keep_people=True)
+#    if do_plot:
+#        msim.reduce()
+#        msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
+#                  legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
 elif whattorun=='transmissionanalysis':
     msim = sc.loadobj('vietnam_sim.obj')
