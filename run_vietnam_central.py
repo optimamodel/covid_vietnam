@@ -49,8 +49,8 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
-    import_start = sim.day('2020-07-10')
-    import_end   = sim.day('2020-07-15')
+    import_start = sim.day('2020-07-01')
+    import_end   = sim.day('2020-07-06')
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
@@ -65,8 +65,8 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=80, quar_test=80, do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.1, asymp_quar_prob=0.3, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.15, asymp_quar_prob=0.4, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Change death and critical probabilities
@@ -199,7 +199,7 @@ if whattorun=='quickestfit':
 
 # Quick calibration
 if whattorun=='quickfit':
-    s0 = make_sim(seed=1, beta=0.0132, change=0.26, end_day=today)
+    s0 = make_sim(seed=1, beta=0.011, change=0.42, end_day=today)
     sims = []
     for seed in range(6):
         sim = s0.copy()
@@ -227,9 +227,10 @@ if whattorun=='quickfit':
 
 # Iterate for calibration
 elif whattorun=='fitting':
-    lowbetas = [i / 10000 for i in range(130, 135, 1)]
-    betas = lowbetas
-    change = [0.26][0]
+    highbetas = [i / 10000 for i in range(130, 135, 1)]
+    midbetas  = [i / 10000 for i in range(106, 116, 2)]
+    betas = [highbetas, midbetas][1]
+    change = [0.26, 0.42][0]
     fitsummary = []
     sims = []
     for beta in betas:
