@@ -230,7 +230,7 @@ elif whattorun=='fitting':
     highbetas = [i / 10000 for i in range(130, 135, 1)]
     midbetas  = [i / 10000 for i in range(106, 116, 2)]
     betas = [highbetas, midbetas][1]
-    change = [0.26, 0.42][0]
+    change = [0.26, 0.42][1]
     fitsummary = []
     sims = []
     for beta in betas:
