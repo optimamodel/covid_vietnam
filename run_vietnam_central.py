@@ -20,7 +20,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': 15,
+            'pop_infected': 0,
             'pop_scale': pop_scale,
             'rand_seed': seed,
             'beta': beta,#0.0145
@@ -33,28 +33,28 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
             'location': 'vietnam',
             'pop_type': 'hybrid',
             'age_imports': [50,80],
-            'rel_crit_prob': 1.5, # Calibration parameter due to hospital outbreak
-            'rel_death_prob': 1.5, # Calibration parameter due to hospital outbreak
+            'rel_crit_prob': 1.75, # Calibration parameter due to hospital outbreak
+            'rel_death_prob': 2, # Calibration parameter due to hospital outbreak
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
     sim = cv.Sim(start_day=start_day, datafile="vietnam_data.csv")
 
     # Set up import assumptions
-    pars['dur_imports'] = sc.dcp(sim.pars['dur'])
-    pars['dur_imports']['exp2inf']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
-    pars['dur_imports']['inf2sym']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
-    pars['dur_imports']['sym2sev']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':2.0}
-    pars['dur_imports']['sev2crit'] = {'dist':'lognormal_int', 'par1':1.0, 'par2':3.0}
-    pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
+#    pars['dur_imports'] = sc.dcp(sim.pars['dur'])
+#    pars['dur_imports']['exp2inf']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
+#    pars['dur_imports']['inf2sym']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
+#    pars['dur_imports']['sym2sev']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':2.0}
+#    pars['dur_imports']['sev2crit'] = {'dist':'lognormal_int', 'par1':1.0, 'par2':3.0}
+#    pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
-    import_start = sim.day('2020-07-05')
-    import_end   = sim.day('2020-07-10')
+    import_start = sim.day('2020-07-01')
+    import_end   = sim.day('2020-07-05')
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
-                              pl.ones(import_end-import_start)*10, # 20 imports/day over the first importation window
+                              pl.ones(import_end-import_start)*20, # 20 imports/day over the first importation window
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
                               cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
@@ -65,9 +65,9 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=100, quar_test=100, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=150, quar_test=100, do_plot=False),
         #cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-07-25'), symp_test=120, quar_test=120, do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.1, asymp_quar_prob=0.2, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.15, asymp_quar_prob=0.3, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Change death and critical probabilities
@@ -201,7 +201,7 @@ if whattorun=='quickestfit':
 
 # Quick calibration
 if whattorun=='quickfit':
-    s0 = make_sim(seed=1, beta=0.0115, change=0.42, end_day=today)
+    s0 = make_sim(seed=1, beta=0.0121, change=0.42, end_day=today)
     sims = []
     for seed in range(10):
         sim = s0.copy()
@@ -230,7 +230,7 @@ if whattorun=='quickfit':
 # Iterate for calibration
 elif whattorun=='fitting':
     highbetas = [i / 10000 for i in range(130, 135, 1)]
-    midbetas  = [i / 10000 for i in range(110, 120, 2)]
+    midbetas  = [i / 10000 for i in range(115, 125, 1)]
     betas = [highbetas, midbetas][1]
     change = [0.26, 0.42][1]
     fitsummary = []
@@ -255,14 +255,14 @@ elif whattorun=='fitting':
 
 elif whattorun=='finialisecalibration':
     sims = []
-    changes = [0.26]
+    changes = [0.42]
     highbetas = [i / 10000 for i in range(130, 135, 1)]
     midbetas  = [i / 10000 for i in range(106, 116, 2)]
-    betas = [highbetas, midbetas][0]
+    betas = [highbetas, midbetas][1]
     for cn, change in enumerate(changes):
         fitsummary = sc.loadobj(f'searches/fitsummary{change}.obj')
         for bn, beta in enumerate(betas):
-            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 80]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 65]
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
