@@ -103,7 +103,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 T = sc.tic()
 cv.check_save_version()
 
-whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'quickscens', 'mainscens', 'multiscens'][1]
+whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'quickscens', 'mainscens', 'multiscens'][2]
 do_plot = True
 do_save = True
 save_sim = True
