@@ -30,60 +30,14 @@ rawcases$Source[rawcases$Source=="Imported case"] = "Imported"
 rawcases$Source = factor(rawcases$Source)
 rawcases$diagdate <- ymd(rawcases$diagdate)
 
-fontfamily="Optima"
-ann_text <- data.frame(Age = rep(50,3),wt = 5,lab = "Text",
-                       cyl = factor(8,levels = c("4","6","8")))
 
-dat_text <- data.frame(
-  label = c("171 domestic cases\n(86% of total)", "70 domestic cases\n(25% of total)", "29 domestic cases\n(23% of total)"),
-  Source = c(NA, NA, NA),
-  Region   = c("Central", "North", "South")
-)
-
-########################################
-# Data visualization by source and region
-########################################
-# Histogram by age
-(g <- ggplot(data=subset(rawcases, !is.na(Region)), aes(x=Age, fill=Source)) +
-  geom_histogram() + 
-  facet_wrap(~Region) + 
-  theme_pubclean() + 
-  theme(text=element_text(size=16,  family=fontfamily)) + 
-  theme(legend.background = element_rect(fill = "white"),
-        legend.key = element_rect(fill = "white", color = NA))  +
-  ylab("Cases") +
-  xlab("Age") +
-  labs(fill = "") +    scale_fill_brewer(palette="Set2") +
-  #annotate(dat_text, x=50, y=38, label=lave, hjust=0, family=fontfamily) +
-  geom_text(data = dat_text, mapping = aes(x=52, y=45, label = label, family=fontfamily)) 
-  )
-
-fn <- "cases_by_age_source_region.png"
-ggsave(fn, g, device="png", dpi=300)
-
-# Time series by source
-df <- data.frame(diagdate = seq(as.Date("2020/1/23"), as.Date("2020/8/2"), "days")) %>%
-  left_join(rawcases  %>% group_by(Region, Source, Cluster) %>% count(diagdate)) %>%
-  rename(date=diagdate,new_diagnoses=n) %>% filter(!is.na(Region) & !is.na(Source))
-ggplot(df, aes(x=date, y=new_diagnoses, fill=Source)) +
-    geom_bar(stat="identity") + 
-    facet_wrap(~Region) + 
-    theme_pubclean() + 
-    theme(text=element_text(size=16,  family=fontfamily)) + 
-    theme(legend.background = element_rect(fill = "white"),
-          legend.key = element_rect(fill = "white", color = NA))  +
-    ylab("Cases") +
-    xlab("Date") +
-    labs(fill = "") +
-    scale_x_date(date_labels = "%b", date_breaks = "1 month") 
-
-fn <- "cases_by_date_source_region.png"
-ggsave(fn, plot = last_plot(), device="png", dpi=300)
 
 df2 <- df  %>% group_by(Region, Source) %>% summarise(total = sum(new_diagnoses))
 
-
+########################################
 # Make dataframe with data from central region 
+########################################
+
 diagnoses <- data.frame(diagdate = seq(as.Date("2020/6/15"), as.Date("2020/8/22"), "days")) %>%
   left_join(rawcases %>% filter(Region=="Central", Source=="Domestic") %>% count(diagdate))  %>%
   rename(date=diagdate,new_diagnoses=n) %>% replace(is.na(.), 0)
@@ -136,20 +90,20 @@ ss <- rawcases  %>% group_by(transmit) %>% filter(Region=="South", Type %in% c("
 hosp <- rawcases %>% filter(Region=="South", Source=="Domestic", Origin %in% c("Bach Mai hospital","Ha Loi")) %>% count() 
 
 
-#########################################
-# Make dataframe with data from Northern region since beginning of epidemic
+########################################
+# Make dataframe with testing data by region since beginning of epidemic
+########################################
 diagnoses <- data.frame(diagdate = seq(as.Date("2020/2/4"), as.Date("2020/8/22"), "days")) %>%
-  left_join(rawcases %>% filter(Region=="North", Source=="Domestic") %>% count(diagdate))  %>%
+  left_join(rawcases %>% filter(Source=="Domestic") %>% count(diagdate))  %>%
   rename(date=diagdate,new_diagnoses=n) %>% replace(is.na(.), 0)
 
 deaths <- data.frame(Dead = seq(as.Date("2020/2/4"), as.Date("2020/8/22"), "days")) %>%
-  left_join(rawcases %>% filter(Region=="North", Source=="Domestic") %>% count(Dead))  %>%
+  left_join(rawcases %>% filter(Source=="Domestic") %>% count(Dead))  %>%
   rename(date=Dead,new_deaths=n) %>% replace(is.na(.), 0)
 
 ## Get testing data
-north_codes <- read_excel("Testing_COVID19_HK_22Aug.xlsx", skip = 2) %>%
-  rename(en_name=X__1,Region=X__2) %>%
-  filter(Region=="North") 
+codes <- read_excel("Testing_COVID19_HK_22Aug.xlsx", skip = 2) %>%
+  rename(en_name="...3",Region="...4") 
 
 sheets = excel_sheets(path = "Testing_COVID19_HK_22Aug.xlsx")
 dates <- sheets[-1]
@@ -167,8 +121,7 @@ for (d in rev(dates)) {
     todays_total <- 0
   }
   else {
-    todays_tests <- read_excel("Testing_COVID19_HK_22Aug.xlsx",  sheet = d, skip = 2) %>% 
-      filter(`Đơn vị thực hiện` %in% north_codes$`Names of health facilities`) 
+    todays_tests <- read_excel("Testing_COVID19_HK_22Aug.xlsx",  sheet = d, skip = 2)
     todays_total <- sum(todays_tests$`Kết quả trong ngày`,na.rm=T)}
   running_total = c(running_total, todays_total)
   days = c(days,paste("2020/",str_split(d,"_")[[1]][2],"/",str_split(d,"_")[[1]][1],sep=""))
@@ -177,7 +130,67 @@ for (d in rev(dates)) {
 tests <- data.frame(date = days,new_tests = running_total)
 tests$date <- ymd(tests$date)
 
+ggplot(tests, aes(x=date, y=new_tests)) +
+  geom_bar(stat="identity") + 
+  ylab("Cases") +
+  xlab("Date") +
+  labs(fill = "") +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") 
+
+
 vietnam_data <- left_join(diagnoses, deaths)
 vietnam_data <- left_join(vietnam_data,tests)
 
 write.csv(vietnam_data,"north_vietnam_data.csv")  
+
+
+
+
+########################################
+# Data visualization by source and region
+########################################
+fontfamily="Optima"
+ann_text <- data.frame(Age = rep(50,3),wt = 5,lab = "Text",
+                       cyl = factor(8,levels = c("4","6","8")))
+
+dat_text <- data.frame(
+  label = c("171 domestic cases\n(86% of total)", "70 domestic cases\n(25% of total)", "29 domestic cases\n(23% of total)"),
+  Source = c(NA, NA, NA),
+  Region   = c("Central", "North", "South")
+)
+# Histogram by age
+(g <- ggplot(data=subset(rawcases, !is.na(Region)), aes(x=Age, fill=Source)) +
+   geom_histogram() + 
+   facet_wrap(~Region) + 
+   theme_pubclean() + 
+   theme(text=element_text(size=16,  family=fontfamily)) + 
+   theme(legend.background = element_rect(fill = "white"),
+         legend.key = element_rect(fill = "white", color = NA))  +
+   ylab("Cases") +
+   xlab("Age") +
+   labs(fill = "") +    scale_fill_brewer(palette="Set2") +
+   #annotate(dat_text, x=50, y=38, label=lave, hjust=0, family=fontfamily) +
+   geom_text(data = dat_text, mapping = aes(x=52, y=45, label = label, family=fontfamily)) 
+)
+
+fn <- "cases_by_age_source_region.png"
+ggsave(fn, g, device="png", dpi=300)
+
+# Time series by source
+df <- data.frame(diagdate = seq(as.Date("2020/1/23"), as.Date("2020/8/2"), "days")) %>%
+  left_join(rawcases  %>% group_by(Region, Source, Cluster) %>% count(diagdate)) %>%
+  rename(date=diagdate,new_diagnoses=n) %>% filter(!is.na(Region) & !is.na(Source))
+ggplot(df, aes(x=date, y=new_diagnoses, fill=Source)) +
+  geom_bar(stat="identity") + 
+  facet_wrap(~Region) + 
+  theme_pubclean() + 
+  theme(text=element_text(size=16,  family=fontfamily)) + 
+  theme(legend.background = element_rect(fill = "white"),
+        legend.key = element_rect(fill = "white", color = NA))  +
+  ylab("Cases") +
+  xlab("Date") +
+  labs(fill = "") +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") 
+
+fn <- "cases_by_date_source_region.png"
+ggsave(fn, plot = last_plot(), device="png", dpi=300)

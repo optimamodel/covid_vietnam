@@ -34,19 +34,19 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
             'pop_type': 'hybrid',
             'age_imports': [50,80],
             'rel_crit_prob': 1.75, # Calibration parameter due to hospital outbreak
-            'rel_death_prob': 2, # Calibration parameter due to hospital outbreak
+            'rel_death_prob': 2., # Calibration parameter due to hospital outbreak
             }
 
     # Make a sim without parameters, just to load in the data to use in the testing intervention and to get the sim days
     sim = cv.Sim(start_day=start_day, datafile="vietnam_data.csv")
 
     # Set up import assumptions
-#    pars['dur_imports'] = sc.dcp(sim.pars['dur'])
-#    pars['dur_imports']['exp2inf']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
-#    pars['dur_imports']['inf2sym']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
-#    pars['dur_imports']['sym2sev']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':2.0}
-#    pars['dur_imports']['sev2crit'] = {'dist':'lognormal_int', 'par1':1.0, 'par2':3.0}
-#    pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
+    pars['dur_imports'] = sc.dcp(sim.pars['dur'])
+    pars['dur_imports']['exp2inf']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
+    pars['dur_imports']['inf2sym']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':0.0}
+    pars['dur_imports']['sym2sev']  = {'dist':'lognormal_int', 'par1':0.0, 'par2':2.0}
+    pars['dur_imports']['sev2crit'] = {'dist':'lognormal_int', 'par1':1.0, 'par2':3.0}
+    pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
     import_start = sim.day('2020-07-01')
@@ -65,9 +65,11 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     trace_time  = {'h': 0, 's': 2, 'w': 2, 'c': 5}
     pars['interventions'] = [
         # Testing and tracing
-        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=150, quar_test=100, do_plot=False),
+        cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-08-22'), symp_test=80, quar_test=80, do_plot=False),
         #cv.test_num(daily_tests=sim.data['new_tests'].rolling(3).mean(), start_day=2, end_day=sim.day('2020-07-25'), symp_test=120, quar_test=120, do_plot=False),
-        cv.test_prob(start_day=sim.day('2020-08-23'), symp_prob=0.15, asymp_quar_prob=0.3, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-08-23'), end_day=sim.day('2020-11-30'), symp_prob=0.05, asymp_quar_prob=0.5, do_plot=False),
+        cv.test_prob(start_day=sim.day('2020-12-01'), symp_prob=0.05, asymp_quar_prob=0.5,
+                     trigger=cv.trigger('date_diagnosed', 5), triggered_vals={'symp_prob':0.2}, do_plot=False),
         cv.contact_tracing(start_day=0, trace_probs=trace_probs, trace_time=trace_time, do_plot=False),
 
         # Change death and critical probabilities
@@ -75,19 +77,21 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
         # Increase precautions (especially mask usage) following the outbreak, which are then abandoned after 40 weeks of low case counts
         #cv.change_beta(days=0, changes=0.25, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
-        cv.change_beta(days=0, changes=change, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
+        #cv.change_beta(days=0, changes=change, layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 5)),
+        cv.change_beta(days=0, changes=change, trigger=cv.trigger('date_diagnosed', 5)),
 
         # Close schools and workplaces
         cv.clip_edges(days=['2020-07-28', '2020-09-14'], changes=[0.1, 1.], layers=['s'], do_plot=True),
         cv.clip_edges(days=['2020-07-28', '2020-09-05'], changes=[0.1, 1.], layers=['w'], do_plot=False),
-        ]
+        # Dynamically close them again if cases go over the threshold
+        cv.clip_edges(days=[170], changes=[0.1], layers=['s'], trigger=cv.trigger('date_diagnosed', threshold)),
+        cv.clip_edges(days=[170], changes=[0.1], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
+    ]
 
     if policy != 'remain':
-        pars['interventions'] += [cv.change_beta(days=80, changes=[1.0], trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28))]
+        pars['interventions'] += [cv.change_beta(days=160, changes=[1.0], layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28))]
     if policy == 'dynamic':
-        pars['interventions'] += [cv.change_beta(days=140, changes=[change], trigger=cv.trigger('date_diagnosed', threshold)),
-                                  cv.clip_edges(days=[140], changes=[0.1], layers=['s'], trigger=cv.trigger('date_diagnosed', threshold)),
-                                  cv.clip_edges(days=[140], changes=[0.1], layers=['w'], trigger=cv.trigger('date_diagnosed', threshold)),
+        pars['interventions'] += [cv.change_beta(days=170, changes=[change], layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', threshold)),
                                   ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -99,7 +103,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 T = sc.tic()
 cv.check_save_version()
 
-whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'mainscens', 'multiscens'][2]
+whattorun = ['quickestfit', 'quickfit', 'fitting', 'finialisecalibration', 'transmissionanalysis', 'quickscens', 'mainscens', 'multiscens'][1]
 do_plot = True
 do_save = True
 save_sim = True
@@ -108,6 +112,10 @@ n_runs = 500
 #betas = [i / 10000 for i in range(135, 155, 2)]
 #changes = [i / 100 for i in range(26, 80, 7)]
 today = '2020-10-15'
+changes = [0.42]
+highbetas = [i / 10000 for i in range(130, 135, 1)]
+midbetas = [i / 10000 for i in range(115, 125, 1)]
+betas = [highbetas, midbetas][1]
 
 # Quickest possible calibration
 if whattorun=='quickestfit':
@@ -201,7 +209,7 @@ if whattorun=='quickestfit':
 
 # Quick calibration
 if whattorun=='quickfit':
-    s0 = make_sim(seed=1, beta=0.0121, change=0.42, end_day=today)
+    s0 = make_sim(seed=1, beta=0.0135, change=0.42, end_day=today)
     sims = []
     for seed in range(10):
         sim = s0.copy()
@@ -230,7 +238,7 @@ if whattorun=='quickfit':
 # Iterate for calibration
 elif whattorun=='fitting':
     highbetas = [i / 10000 for i in range(130, 135, 1)]
-    midbetas  = [i / 10000 for i in range(115, 125, 1)]
+    midbetas  = [i / 10000 for i in range(130, 140, 1)]#[i / 10000 for i in range(115, 125, 1)]
     betas = [highbetas, midbetas][1]
     change = [0.26, 0.42][1]
     fitsummary = []
@@ -255,14 +263,10 @@ elif whattorun=='fitting':
 
 elif whattorun=='finialisecalibration':
     sims = []
-    changes = [0.42]
-    highbetas = [i / 10000 for i in range(130, 135, 1)]
-    midbetas  = [i / 10000 for i in range(106, 116, 2)]
-    betas = [highbetas, midbetas][1]
     for cn, change in enumerate(changes):
         fitsummary = sc.loadobj(f'searches/fitsummary{change}.obj')
         for bn, beta in enumerate(betas):
-            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 65]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 80]
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
@@ -317,9 +321,12 @@ elif whattorun=='transmissionanalysis':
 
     cvu.defined(sim.people.date_known_contact)
 
-elif whattorun=='mainscens':
+elif whattorun=='quickscens':
+    print('---------------\n')
+    print(f'Starting {whattorun}... ')
+    print('---------------\n')
     # Load good seeds
-    fitsummary = sc.loadobj('fitsummary1.obj')
+    fitsummary = sc.loadobj(f'searches/fitsummary{0.42}.obj')
     for policy in ['remain','drop','dynamic']:
         sims = []
         sc.blank()
@@ -328,13 +335,16 @@ elif whattorun=='mainscens':
         print('---------------\n')
         for bn,beta in enumerate(betas):
             s0 = make_sim(seed=1, beta=beta, policy=policy)
-            goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 63]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 50]
             if len(goodseeds)>0:
                 for seed in goodseeds:
                     sim = s0.copy()
                     sim['rand_seed'] = seed
                     sim.set_seed()
                     sims.append(sim)
+        print('---------------\n')
+        print(f'Number of sims: {len(sims)}... ')
+        print('---------------\n')
         msim = cv.MultiSim(sims)
         msim.run()
         to_plot = sc.objdict({
@@ -346,8 +356,46 @@ elif whattorun=='mainscens':
             'Daily deaths': ['new_deaths'],
             })
 
+#        if save_sim:
+#            msim.save(f'results4dec/vietnam_sim_{policy}.obj')
+        if do_plot:
+            msim.reduce()
+            msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam_q_{policy}.png',
+                      legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
+
+
+
+elif whattorun=='mainscens':
+    # Load good seeds
+    fitsummary = sc.loadobj(f'searches/fitsummary{0.42}.obj')
+    for policy in ['remain','drop','dynamic']:
+        sims = []
+        sc.blank()
+        print('---------------\n')
+        print(f'Starting {policy} policy runs... ')
+        print('---------------\n')
+        for bn,beta in enumerate(betas):
+            s0 = make_sim(seed=1, beta=beta, policy=policy)
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 73]
+            if len(goodseeds)>0:
+                for seed in goodseeds:
+                    sim = s0.copy()
+                    sim['rand_seed'] = seed
+                    sim.set_seed()
+                    sims.append(sim)
+        msim = cv.MultiSim(sims)
+        msim.run(parallel=False)
+        to_plot = sc.objdict({
+            'Cumulative diagnoses': ['cum_diagnoses'],
+            'Cumulative infections': ['cum_infections'],
+            'New infections': ['new_infections'],
+            'Daily diagnoses': ['new_diagnoses'],
+            'Cumulative deaths': ['cum_deaths'],
+            'Daily deaths': ['new_deaths'],
+            })
+
         if save_sim:
-            msim.save(f'results19nov/vietnam_sim_{policy}.obj')
+            msim.save(f'results4dec/vietnam_sim_{policy}.obj')
         if do_plot:
             msim.reduce()
             msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam_{policy}.png',
