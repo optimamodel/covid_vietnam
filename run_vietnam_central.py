@@ -20,7 +20,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': 0,
+            'pop_infected': 1,
             'pop_scale': pop_scale,
             'rand_seed': seed,
             'beta': beta,#0.0145
@@ -49,12 +49,13 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
-    import_start = sim.day('2020-07-01')
-    import_end   = sim.day('2020-07-05')
+    import_start = sim.day('2020-06-15')
+    import_end   = sim.day('2020-07-15')
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
     imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
-                              pl.ones(import_end-import_start)*20, # 20 imports/day over the first importation window
+#                              pl.ones(import_end-import_start)*2, # 20 imports/day over the first importation window
+                              cv.n_neg_binomial(1, 0.25, import_end-import_start),
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
                               cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
@@ -89,9 +90,9 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     ]
 
     if policy != 'remain':
-        pars['interventions'] += [cv.change_beta(days=160, changes=[1.0], layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28))]
+        pars['interventions'] += [cv.change_beta(days=160, changes=1.0, trigger=cv.trigger('date_diagnosed', 2, direction='below', smoothing=28))]
     if policy == 'dynamic':
-        pars['interventions'] += [cv.change_beta(days=170, changes=[change], layers=['c','w','s'], trigger=cv.trigger('date_diagnosed', threshold)),
+        pars['interventions'] += [cv.change_beta(days=170, changes=change, trigger=cv.trigger('date_diagnosed', threshold)),
                                   ]
 
     sim = cv.Sim(pars=pars, datafile="vietnam_data.csv")
@@ -112,10 +113,11 @@ n_runs = 500
 #betas = [i / 10000 for i in range(135, 155, 2)]
 #changes = [i / 100 for i in range(26, 80, 7)]
 today = '2020-10-15'
-changes = [0.42]
 highbetas = [i / 10000 for i in range(130, 135, 1)]
-midbetas = [i / 10000 for i in range(115, 125, 1)]
+midbetas = [i / 10000 for i in range(130, 140, 1)]  # [i / 10000 for i in range(115, 125, 1)]
 betas = [highbetas, midbetas][1]
+change = [0.26, 0.42][1]
+changes = [0.42]
 
 # Quickest possible calibration
 if whattorun=='quickestfit':
@@ -264,7 +266,7 @@ elif whattorun=='fitting':
 elif whattorun=='finialisecalibration':
     sims = []
     for cn, change in enumerate(changes):
-        fitsummary = sc.loadobj(f'searches/fitsummary{change}.obj')
+        fitsummary = sc.loadobj(f'searches/fitsummary{change}_1.obj')
         for bn, beta in enumerate(betas):
             goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 80]
             sc.blank()
@@ -326,7 +328,7 @@ elif whattorun=='quickscens':
     print(f'Starting {whattorun}... ')
     print('---------------\n')
     # Load good seeds
-    fitsummary = sc.loadobj(f'searches/fitsummary{0.42}.obj')
+    fitsummary = sc.loadobj(f'searches/fitsummary{0.42}_1.obj')
     for policy in ['remain','drop','dynamic']:
         sims = []
         sc.blank()
@@ -335,7 +337,7 @@ elif whattorun=='quickscens':
         print('---------------\n')
         for bn,beta in enumerate(betas):
             s0 = make_sim(seed=1, beta=beta, policy=policy)
-            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 50]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 60]
             if len(goodseeds)>0:
                 for seed in goodseeds:
                     sim = s0.copy()
@@ -404,7 +406,7 @@ elif whattorun=='mainscens':
 
 elif whattorun=='multiscens':
     # Load good seeds
-    fitsummary = sc.loadobj('fitsummary.obj')
+    fitsummary = sc.loadobj(f'searches/fitsummary{0.42}.obj')
     thresholds = np.arange(10,60,10)
     for threshold in thresholds:
         sims = []
@@ -414,7 +416,7 @@ elif whattorun=='multiscens':
         print('---------------\n')
         for bn,beta in enumerate(betas):
             s0 = make_sim(seed=1, beta=beta, policy='dynamic', threshold=threshold)
-            goodseeds = [i for i in range(n_runs) if fitsummary['allmismatches'][bn][i] < 63]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 70]
             if len(goodseeds)>0:
                 for seed in goodseeds:
                     sim = s0.copy()
@@ -436,7 +438,7 @@ elif whattorun=='multiscens':
             msim.save(f'vietnam_sim_{threshold}.obj')
         if do_plot:
             msim.reduce()
-            msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam_{threshold}_higherimps.png',
+            msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam_{threshold}.png',
                       legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
 
