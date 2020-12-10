@@ -20,7 +20,7 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
 
     # Calibration parameters
     pars = {'pop_size': n_agents,
-            'pop_infected': 1,
+            'pop_infected': 0,
             'pop_scale': pop_scale,
             'rand_seed': seed,
             'beta': beta,#0.0145
@@ -53,11 +53,12 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, end_day=None
     import_end   = sim.day('2020-07-15')
     border_start = sim.day('2020-11-30')
     final_day_ind  = sim.day('2021-02-28')
-    imports = np.concatenate((pl.zeros(import_start), # No imports until the import start day
+    imports = np.concatenate((#pl.zeros(import_start), # No imports until the import start day
 #                              pl.ones(import_end-import_start)*2, # 20 imports/day over the first importation window
-                              cv.n_neg_binomial(1, 0.25, import_end-import_start),
+                              #cv.n_neg_binomial(1, 0.25, import_end-import_start),
+                              np.array([1, 0, 0, 0, 2, 2, 8, 4, 1, 1, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 2, 3, 1, 1, 3, 0, 3, 0, 1, 6, 1, 5, 0, 0]),
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
-                              cv.n_neg_binomial(1, 0.5, final_day_ind-border_start) # Negative-binomial distributed importations each day
+                              cv.n_neg_binomial(1, 0.25, final_day_ind-border_start) # Negative-binomial distributed importations each day
                               ))
     pars['n_imports'] = imports
 
@@ -266,9 +267,9 @@ elif whattorun=='fitting':
 elif whattorun=='finialisecalibration':
     sims = []
     for cn, change in enumerate(changes):
-        fitsummary = sc.loadobj(f'searches/fitsummary{change}_1.obj')
+        fitsummary = sc.loadobj(f'searches/fitsummary{change}_2.obj')
         for bn, beta in enumerate(betas):
-            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 80]
+            goodseeds = [i for i in range(n_runs) if fitsummary[bn][i] < 90]
             sc.blank()
             print('---------------\n')
             print(f'Beta: {beta}, change: {change}, goodseeds: {len(goodseeds)}')
