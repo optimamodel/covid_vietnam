@@ -10,8 +10,10 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 
 # Filepaths
-figsfolder = 'figs'
-today = '2020-11-10'
+figsfolder = 'figs234'
+resfolder = 'resultstest'
+simsfilepath = f'{resfolder}/vietnam_sim.obj'
+today = '2020-12-01'
 
 T = sc.tic()
 
@@ -23,9 +25,7 @@ def format_ax(ax, sim, key=None):
     def date_formatter(x, pos):
         return (sim['start_day'] + dt.timedelta(days=x)).strftime('%b-%y')
     ax.xaxis.set_major_formatter(date_formatter)
-    pl.xlim([0, sim['n_days']])
-#    pl.xlim([sim.day(today), sim.day('2021-02-28')])
-#    sc.boxoff()
+    pl.xlim([0, sim['n_days']-30])
     return
 
 def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.025, high_q=0.975, flabel=True, startday=None, subsample=2, chooseseed=None):
@@ -64,7 +64,7 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
     start = None
     if startday is not None:
         start = sim.day(startday)
-    end = sim.day('2021-02-28')
+    end = sim.day('2021-03-31')
     if flabel:
         if which == 'infections':
             fill_label = '95% projected interval'
@@ -79,7 +79,7 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
 
     #sc.setylim()
 
-    datemarks = pl.array([sim.day('2020-07-01'),sim.day('2020-09-01'),sim.day('2020-11-01'),sim.day('2021-01-01')])*1.
+    datemarks = pl.array([sim.day('2020-07-01'),sim.day('2020-09-01'),sim.day('2020-11-01'),sim.day('2021-01-01'),sim.day('2021-03-01')])*1.
     ax.set_xticks(datemarks)
 
     pl.ylabel(ylabel)
@@ -111,7 +111,7 @@ ax = {}
 
 
 # Import files
-filepaths = [f'results4dec/vietnam_sim_{policy}.obj' for policy in ['remain','drop','dynamic']]
+filepaths = [f'{resfolder}/vietnam_sim_{policy}.obj' for policy in ['remain','drop','dynamic']]
 sims = []
 for fp in filepaths:
     simsfile = sc.loadobj(fp)
@@ -120,7 +120,7 @@ sim = sims[0][0] # Extract a sim to refer to
 
 colors = [[0.03137255, 0.37401   , 0.63813918, 1.        ], '#c75649']
 linecolor = [0, 0, 0]
-importday = sim.day('2020-11-15')
+importday = sim.day('2020-12-01')
 
 # Add text
 headings =["    Constant high compliance   ",
@@ -159,31 +159,7 @@ for pn in range(nplots):
     else:
         ax[pn].set_ylabel('Daily diagnoses') if pn == 0 else ax[pn].set_ylabel('Active infections')
 
-cv.savefig(f'fig2_scenarios.png', dpi=100)
-
-#n_lines=len(sims[0])
-#x = np.arange(len(sim.results['new_diagnoses'].values))
-#xs = np.array([x for i in range(n_lines)])
-
-#for pn in [0,1,2]:
-#    yval = np.array([s.results['new_diagnoses'].values[-1] for s in sims[pn]])
-#    for s in sims[pn]:
-#        ax[pn].plot(np.arange(len(s.results['new_diagnoses'].values)), s.results['new_diagnoses'].values, '-', lw=1, c=colors[0], alpha=1.0)
-#        ax[pn].set_ylim(0, 400)
-#    if (pn%ncols) != 0:
-#        ax[pn].set_yticklabels([])
-#ax[0].set_ylabel('Daily diagnoses')
-#for pn in [3,4,5]:
-#    for s in sims[pn-3]:
-#        ax[pn].plot(np.arange(len(s.results['n_exposed'].values)), s.results['n_exposed'].values, '-', lw=1, c=colors[1], alpha=1.0)
-#        ax[pn].set_ylim(0, 3000)
-#    if (pn % ncols) != 0:
-#        ax[pn].set_yticklabels([])
-#    ax[pn].set_xticklabels([])
-#ax[3].set_ylabel('Active infections')
-
-
-#    if pn == nplots: pl.legend(loc='upper right', frameon=False, fontsize=20)
+cv.savefig(f'{figsfolder}/fig3_scenarios.png', dpi=100)
 
 
 sc.toc(T)

@@ -8,8 +8,8 @@ import datetime as dt
 import matplotlib.patches as patches
 
 # Filepaths
-figsfolder = 'figs'
-simsfilepath = 'vietnam_sim_nomasks.obj'
+figsfolder = 'figs234'
+simsfilepath = 'results/vietnam_sim.obj'
 today = '2020-10-15'
 
 T = sc.tic()
@@ -76,6 +76,7 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
     pl.fill_between(tvec[startday:end], low[startday:end], high[startday:end], facecolor=color, alpha=0.2, label=fill_label)
     pl.plot(tvec[startday:end], best[startday:end], c=color, label=label, lw=4, alpha=1.0)
 
+    # Print some stats
     if key == 'cum_infections':
         print(f'Estimated {which} on July 25: {best[sim.day("2020-07-25")]} (95%: {low[sim.day("2020-07-25")]}-{high[sim.day("2020-07-25")]})')
         print(f'Estimated {which} overall: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
@@ -112,7 +113,7 @@ def plot_intervs(sim, labels=True):
     if labels:
         yl = pl.ylim()
         labely = yl[1]*0.85
-        pl.text(jul25-17, labely, 'Da Nang\noutbreak', color=color, alpha=0.9, style='italic')
+        pl.text(jul25-20, labely, 'Da Nang\noutbreak', color=color, alpha=0.9, style='italic')
         pl.text(sim.day('2020-09-05')-15, labely, 'Work\nreopens', color=color, alpha=0.9, style='italic')
         pl.text(sim.day('2020-09-14') + 2, labely, 'School\nreopens', color=color, alpha=0.9, style='italic')
     return
@@ -170,6 +171,6 @@ plotter('cum_deaths', sims, ax[3], calib=True, label='Deaths\n(modelled)', ylabe
 pl.legend(loc='upper left', frameon=False)
 #pl.ylim([0, 10e3])
 
-cv.savefig(f'fig1_calibration_nomasks.png', dpi=100)
+cv.savefig(f'{figsfolder}/fig2_calibration.png', dpi=100)
 
 sc.toc(T)

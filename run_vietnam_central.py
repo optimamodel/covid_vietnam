@@ -19,11 +19,11 @@ cv.check_save_version()
 
 # Define what to run. All analyses are contained in this single script; the idea if that these should be run sequentially
 runoptions = ['quickfit', # Does a quick preliminary calibration. Quick to run, ~30s
-             'fitting',  # Searches over parameters and seeds (10,000 runs) and calculates the mismatch for each. Slow to run: ~1hr on Athena
-             'finialisecalibration', # Filters the 10,000 runs from the previous step, selects the best-fitting ones, and runs these. Creates a file "vietnam_sim.obj" used by plot_vietnam_calibration for Figure 2
-             'mainscens', # Takes the best-fitting runs and projects these forward under different border-reopening scenarios. Creates files "vietnam_sim_drop.obj", "vietnam_sim_remain.obj" and "vietnam_sim_dynamic.obj" used by plot_vietnam_scenarios for Figure 3
-             'testingscens'] # Takes the best-fitting runs and projects these forward under different testing scenarios. Creates files "vietnam_sim_{XXX}.obj" used by plot_vietnam_multiscens for Figure 4
-whattorun = runoptions[3] #Select which of the above to run
+              'fitting',  # Searches over parameters and seeds (10,000 runs) and calculates the mismatch for each. Slow to run: ~1hr on Athena
+              'finialisecalibration', # Filters the 10,000 runs from the previous step, selects the best-fitting ones, and runs these. Creates a file "vietnam_sim.obj" used by plot_vietnam_calibration for Figure 2
+              'mainscens', # Takes the best-fitting runs and projects these forward under different border-reopening scenarios. Creates files "vietnam_sim_drop.obj", "vietnam_sim_remain.obj" and "vietnam_sim_dynamic.obj" used by plot_vietnam_scenarios for Figure 3
+              'testingscens'] # Takes the best-fitting runs and projects these forward under different testing scenarios. Creates files "vietnam_sim_{XXX}.obj" used by plot_vietnam_multiscens for Figure 4
+whattorun = runoptions[4] #Select which of the above to run
 
 # Settings for plotting and saving
 do_plot = True
@@ -32,7 +32,8 @@ save_sim = True
 keep_people = False
 n_runs = 500
 today = '2020-10-15'
-resfolder = 'results'
+resfolder = 'resultstest'
+
 to_plot = sc.objdict({
     'Cumulative diagnoses': ['cum_diagnoses'],
     'Cumulative infections': ['cum_infections'],
@@ -44,7 +45,7 @@ to_plot = sc.objdict({
 
 # Calibration parameters
 betas = [i / 10000 for i in range(130, 140, 1)]
-change = [0.42]
+change = 0.42
 
 
 ########################################################################
@@ -53,7 +54,7 @@ change = [0.42]
 def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, symp_prob=0.01, end_day=None):
 
     start_day = '2020-06-15'
-    if end_day is None: end_day = '2021-02-28'
+    if end_day is None: end_day = '2021-04-30'
     total_pop = 11.9e6 # Population of central Vietnam
     n_agents = 100e3
     pop_scale = total_pop/n_agents
@@ -89,13 +90,14 @@ def make_sim(seed, beta, change=0.42, policy='remain', threshold=5, symp_prob=0.
     pars['dur_imports']['crit2die'] = {'dist':'lognormal_int', 'par1':3.0, 'par2':3.0}
 
     # Define import array
-    import_start = sim.day('2020-06-15')
     import_end   = sim.day('2020-07-15')
-    border_start = sim.day('2020-11-30')
-    final_day_ind  = sim.day('2021-02-28')
-    imports = np.concatenate((np.array([1, 0, 0, 0, 2, 2, 8, 4, 1, 1, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 2, 3, 1, 1, 3, 0, 3, 0, 1, 6, 1, 5, 0, 0]),
+    border_start = sim.day('2020-11-30') # Open borders for one month
+    border_end   = sim.day('2020-12-31') # Then close them again
+    final_day_ind  = sim.day('2021-04-30')
+    imports = np.concatenate((np.array([1, 0, 0, 0, 2, 2, 8, 4, 1, 1, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 2, 3, 1, 1, 3, 0, 3, 0, 1, 6, 1, 5, 0, 0]), # Generated from cv.n_neg_binomial(1, 0.25) but then hard-copied to remove variation when calibrating
                               pl.zeros(border_start-import_end), # No imports from the end of the 1st importation window to the border reopening
-                              cv.n_neg_binomial(1, 0.25, final_day_ind-border_start) # Negative-binomial distributed importations each day
+                              cv.n_neg_binomial(1, 0.25, border_end-border_start), # Negative-binomial distributed importations each day
+                              pl.zeros(final_day_ind-border_end)
                               ))
     pars['n_imports'] = imports
 
