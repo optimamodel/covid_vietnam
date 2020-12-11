@@ -1,6 +1,7 @@
 ########################################
 # Script for generating Fig. 1 of the manuscript, statistics on case counts by 
-# region in Vietnam
+# region in Vietnam. Sourcing the file will save three figures, most notably
+# fig1.png.
 #
 # Date last modified: Dec 10, 2020
 ########################################
@@ -10,8 +11,8 @@ library(plyr)
 library(tools)
 library(cowplot)
 library(data.table)
-#library(EpiEstim)
 library(scales)
+library(cowplot)
 
 cat(date(),'\n')
 rm(list=ls())
@@ -169,13 +170,17 @@ miles[,y2:=cases+2]
 # line breaks
 miles[Region!='National' & nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
-# Final tweaks
+# Final tweaks to 1B
 
 # Fig 1B, north
 miles[,milestone:=gsub('Back','Bach',milestone)]
 miles[grep('Vinh Phuc',milestone),x0:=x0+3]
+miles[grep('Vinh Phuc',milestone),y0:=y0-35]
+miles[grep('First targeted',milestone),y0:=y0-35]
 miles[grep('detected in Bach',milestone),x0:=x0+8]
 miles[grep('Lockdown of Bach',milestone),x0:=x0+2]
+miles[grep('downtown Hanoi',milestone),x0:=x0+9]
+miles[grep('downtown Hanoi',milestone),y0:=y0+1]
 
 # Fig. 1B, central
 miles[grep('Binh Thuan',milestone),y0:=y0-25]
@@ -248,6 +253,25 @@ miles[grep('Reopen borders',milestone),y0:=10] # last milestone low
 ### Last minute! Da Nang standard naming
 miles[,milestone:=gsub('Danang','Da Nang',milestone)]
 miles[Region=='National' & grepl('Da Nang',milestone),y0:=50]
+
+# Final tweaks to 1A
+miles[grep('Surveillance guidelines',milestone),y0:=y0-25]
+miles[grep('Flight ban',milestone),y0:=y0-25]
+miles[grep('Schools closed;',milestone),y0:=y0-25]
+miles[grep('Warning messages',milestone),y0:=y0-25]
+
+miles[grep('All air travel',milestone),x0:=x0-10]
+miles[grep('Mandatory wearing',milestone),x0:=x0+5]
+miles[grep('Suspend all',milestone),x0:=x0-10]
+miles[grep('and non-essential',milestone),x0:=x0+30]
+miles[grep('Bluezone',milestone),x0:=x0+8]
+
+miles[grep('Non-essential',milestone),y0:=y0-50]
+miles[grep('Bars reopen',milestone),y0:=y0-39]
+miles[grep('Extended testing',milestone),y0:=y0-35]
+miles[grep('Extended testing',milestone),x0:=x0-7]
+miles[grep('Reopen borders',milestone),x0:=x0-3]
+
 
 ################################################# Plotting
 
@@ -339,8 +363,12 @@ ggsave(p1,file='output/fig1b.png',height=11,width=14)
 #ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='output/paperPlot1.png',height=13,width=15)
 #ggsave(ggarrange(p1,p2,heights=c(3.5,1),padding=0,align='v'),file='output/paperPlot1.png',height=13,width=15)
 
+g = plot_grid(pnat, p1, 
+              labels = c('A', 'B'), 
+              rel_heights = c(7,11),
+              label_size=24, ncol=1)
 
-cat(date(),'\n')
+ggsave(g,file='output/fig1.png', height=19, width=14)
 
 
 
