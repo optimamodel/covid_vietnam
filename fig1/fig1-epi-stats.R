@@ -25,7 +25,7 @@ f2high=12
 psize=5
 bigsize=1.5 # for bigger labels
 linelength=32
-lheight=0.7
+lheight=1.0
 tcol='black'
 mycols=scale_fill_manual(values=c("grey30","darkgoldenrod2","darkcyan"))
 yname=ylab("New confirmed cases")
