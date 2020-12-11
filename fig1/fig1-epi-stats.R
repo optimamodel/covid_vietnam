@@ -98,8 +98,8 @@ miles[,milestone:=gsub('Commuity','Community',milestone)]
 miles[,milestone:=gsub('detected Hai','detected in Hai',milestone)]
 miles[,milestone:=gsub('Flights ban','Flight ban',milestone)]
 miles[,milestone:=gsub('A city','Danang city',milestone)]
-miles[milestone=='Ban on public gatherings',milestone:=paste(milestone,'in Danang')]
-miles[milestone=='Lockdown relaxed',milestone:=paste('Danang',tolower(milestone))]
+miles[milestone=='Ban on public gatherings',milestone:=paste(milestone,'in Da Nang')]
+miles[milestone=='Lockdown relaxed',milestone:=paste('Da Nang',tolower(milestone))]
 miles[milestone=='Lockdown 3 hospitals with case detection and surrounding house blocks',
 	milestone:='Lockdown 3 hospitals and surrounding house blocks, with case detection']
 
@@ -169,6 +169,15 @@ miles[,y2:=cases+2]
 # line breaks
 miles[Region!='National' & nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
+# Final tweaks
+miles[,milestone:=gsub('Back','Bach',milestone)]
+miles[grep('Vinh Phuc',milestone),x0:=x0+3]
+miles[grep('detected in Bach',milestone),x0:=x0+8]
+miles[grep('Lockdown of Bach',milestone),x0:=x0+2]
+
+miles[grep('house blocks, with',milestone),y0:=y0-10]
+
+
 # Milestone colors
 mdefault='#444444'
 mlock='#dd5522'
@@ -231,7 +240,7 @@ miles[Region=='National' & grepl('Da Nang',milestone),y0:=50]
 
 milearrow <- function(dat, grace=-0.,...) {
   geom_curve(data=dat, color=dat$colcode,
-             aes( x=x1, y=y1, xend=date, yend=y2), 
+             aes( x=x0, y=y0, xend=date, yend=y2), 
              curvature=grace, arrow=arrow(length=unit(2, "mm")), alpha=0.4,...) 
 }
 
