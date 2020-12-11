@@ -64,11 +64,17 @@ vietnam_data <- left_join(diagnoses, deaths)
 vietnam_data$new_tests <- running_total
 
 # Add latest data
-Vietnam <- read.csv("rawdata/Vietnam.csv")
-newdata <- Vietnam[as.Date(Vietnam$date)>"2020-08-23",c("date","new_diagnoses","new_deaths")]
-newdata$new_tests <- NA
-vietnam_data <- rbind(vietnam_data, newdata)
-vietnam_data$date <- format(vietnam_data$date, "%Y-%m-%d")
+orig_data_file <- "rawdata/Vietnam.csv"
+if (file.exists(orig_data_file)) {
+  Vietnam <- read.csv("rawdata/Vietnam.csv")
+  newdata <- Vietnam[as.Date(Vietnam$date)>"2020-08-23Vietnam.cs",c("date","new_diagnoses","new_deaths")]
+  newdata$new_tests <- NA
+  vietnam_data <- rbind(vietnam_data, newdata)
+  vietnam_data$date <- format(vietnam_data$date, "%Y-%m-%d")
+  
+  write.csv(vietnam_data,"vietnam_data.csv")  
+} else {
+  message('Note, file not found, not regenerating data file')
+}
 
-write.csv(vietnam_data,"vietnam_data.csv")  
 
