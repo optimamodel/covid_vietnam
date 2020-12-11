@@ -232,7 +232,7 @@ miles[Region=='National' & grepl('Da Nang',milestone),y0:=60]
 ################################################# Plotting
 
 # Factor between the 2 y axes
-dfac=max(national$totcases)/max(national$totdeaths)
+dfac=10# max(national$totcases)/max(national$totdeaths)*0.5 # 0.5 is to make deaths look lower
 tfac=0.95*max(national$totcases)/max(miles$y0[miles$Region=='National'])
 miles[Region=='National',c('y0','y1'):=list(tfac*y0,tfac*y1)]
 
@@ -242,9 +242,12 @@ case_col = '#4D4D99'
 death_col='#800000'
 
 pnat<-ggplot(national, aes(x=refdate))+
-  geom_line(aes(y=totcases),lwd=nwid, col=case_col)+
+  geom_point(aes(y=totcases),lwd=nwid, col=case_col, alpha=0.5)+
+  geom_line(aes(y=totcases),lwd=nwid, col=case_col, alpha=0.2)+
+  
   scale_y_continuous(expand=c(0.01,0.0), sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 deaths"))+
-  geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=death_col) + 
+  geom_point(aes(y=dfac*totdeaths),lwd=nwid,col=death_col, alpha=0.5) + 
+  geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=death_col, alpha=0.2) + 
   ylab("Cumulative confirmed cases")+xlab("") + 
   geom_label(data=miles[Region=='National',],
              aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),
