@@ -77,6 +77,10 @@ casedata[is.na(dxdate),dxdate:=as.Date(diagdate,'%d/%m/%Y')]
 # Epi curve dataset format
 vietnamEpi=casedata[Region!='Highland',list(newcases=.N),keyby=.(dxdate,Region,domestic)]
 
+# differential color for lockdown and reopening?
+vietnamEpi[,colcode:='#fa423af']
+vietnamEpi[domestic==1,colcode:='#000dda']
+
 ########################################## Milestone label prep
 
 miles[,date:=as.Date(date,'%m/%d/%Y')]
@@ -86,8 +90,6 @@ setkey(miles,date)
 setnames(miles,'Level','Region')
 miles[,Region:=gsub('North','Northern',Region)]
 miles[,Region:=gsub('South','Southern',Region)]
-
-
 
 # errata
 miles[,milestone:=gsub('dearpart','depart',milestone)]
@@ -216,12 +218,12 @@ miles[Region=='National' & nchar(milestone)>0.6*linelength,milestone:=gsub(paste
 #miles[milestone %in% c('National lockdown'),y0:=35]
 #miles[Region=='National' & colcode==3,y0:=45]
 miles[Region=='National',y1:=y0+2]
-miles[Region=='National',y2:=60]
+miles[Region=='National',y2:=50]
 miles[grep('Reopen borders',milestone),y0:=10] # last milestone low
 
 ### Last minute! Da Nang standard naming
 miles[,milestone:=gsub('Danang','Da Nang',milestone)]
-miles[Region=='National' & grepl('Da Nang',milestone),y0:=60]
+miles[Region=='National' & grepl('Da Nang',milestone),y0:=50]
 
 ################################################# Plotting
 
@@ -287,12 +289,17 @@ ggsave(pnat,file='output/fig1a.png',height=7,width=14)
 # -----------------------------
 # Plot 2 -- new cases by region
 p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ 
-  geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +
+  geom_col(width=1,aes(fill=factor(colcode, labels=c('Domestic case', 'Imported case')))) +
   mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+
   facet_grid(relevel(factor(Region),'Northern')~.) +
+  scale_fill_manual(values=c("#4D4D4D", "#EEAD0E")) +
   milearrow(miles[Region!='National',])+
   miletext(miles[Region!='National',])+#textcol+
-  scale_y_continuous(limits=c(0,65),expand=c(0.01,0))
+  scale_y_continuous(limits=c(0,65),expand=c(0.01,0))+
+  theme(legend.position=c(0.9, 0.95))+
+  # remove legend key border color & background
+  theme(legend.key = element_rect(colour = NA, fill = NA),
+        legend.box.background = element_blank())
 #+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
 
