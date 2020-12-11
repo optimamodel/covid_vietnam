@@ -28,7 +28,7 @@ linelength=32
 lheight=0.7
 tcol='black'
 mycols=scale_fill_manual(values=c("grey30","darkgoldenrod2","darkcyan"))
-yname=ylab("New Confirmed Cases")
+yname=ylab("New confirmed cases")
 dates=function(dat) scale_x_date(date_breaks ="week",limits=range(dat$date),breaks=seq(as.Date('2020-1-6'),as.Date('2020-9-21'),7),labels = date_format("%d-%b"),expand=c(0.1,0.1))
 dates2=theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 overall=theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),legend.position = c(0.93,0.25),legend.box.background = element_rect(linetype=1,size=1.))
@@ -238,20 +238,23 @@ miles[Region=='National',c('y0','y1'):=list(tfac*y0,tfac*y1)]
 
 
 nwid=2
-dcol='maroon'
+case_col = '#4D4D99'
+death_col='#800000'
 
 pnat<-ggplot(national, aes(x=refdate))+
-  geom_line(aes(y=totcases),lwd=nwid)+
-  scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+
-  geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + 
-  ylab("Cumulative Confirmed Cases")+xlab("") + 
+  geom_line(aes(y=totcases),lwd=nwid, col=case_col)+
+  scale_y_continuous(expand=c(0.01,0.0), sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 deaths"))+
+  geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=death_col) + 
+  ylab("Cumulative confirmed cases")+xlab("") + 
   geom_label(data=miles[Region=='National',],
              aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),
              hjust=0.5,vjust=0.5,lineheight=lheight) + 
   dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ 
   scale_size(range = 3.5*c(1,bigsize))+
-  theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),
-        axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
+  theme(axis.text.y.left = element_text(color=case_col),axis.title.y.left = element_text(color=case_col),
+        axis.line.y.left = element_line(color=case_col),axis.ticks.y.left = element_line(color=case_col))+
+  theme(axis.text.y.right = element_text(color=death_col),axis.title.y.right = element_text(color=death_col),
+        axis.line.y.right = element_line(color=death_col),axis.ticks.y.right = element_line(color=death_col))
 
 ggsave(pnat,file='output/fig1a.png',height=7,width=14)
 
@@ -261,7 +264,8 @@ p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+
   mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+
   facet_grid(relevel(factor(Region),'Northern')~.) +
   milearrow(miles[Region!='National',])+
-  miletext(miles[Region!='National',])+textcol
+  miletext(miles[Region!='National',])+textcol+
+  scale_y_continuous(limits=c(0,65),expand=c(0.01,0))
 #+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
 
