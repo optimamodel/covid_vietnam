@@ -32,7 +32,7 @@ rawcases$diagdate <- ymd(rawcases$diagdate)
 
 
 
-df2 <- df  %>% group_by(Region, Source) %>% summarise(total = sum(new_diagnoses))
+# df2 <- df  %>% group_by(Region, Source) %>% summarise(total = sum(new_diagnoses))
 
 ########################################
 # Make dataframe with data from central region 
@@ -70,20 +70,28 @@ vietnam_data <- left_join(diagnoses, deaths)
 vietnam_data$new_tests <- running_total
 
 # Add latest data
-Vietnam <- read.csv("~/Documents/git/covid_vietnam/Vietnam.csv")
-newdata <- Vietnam[as.Date(Vietnam$date)>"2020-08-23",c("date","new_diagnoses","new_deaths")]
-newdata$new_tests <- NA
-vietnam_data <- rbind(vietnam_data, newdata)
-vietnam_data$date <- format(vietnam_data$date, "%Y-%m-%d")
+orig_data_file <- "~/Documents/git/covid_vietnam/Vietnam.csv"
+if (file.exists(orig_data_file)) {
+  Vietnam <- read.csv("~/Documents/git/covid_vietnam/Vietnam.csv")
+  newdata <- Vietnam[as.Date(Vietnam$date)>"2020-08-23Vietnam.cs",c("date","new_diagnoses","new_deaths")]
+  newdata$new_tests <- NA
+  vietnam_data <- rbind(vietnam_data, newdata)
+  vietnam_data$date <- format(vietnam_data$date, "%Y-%m-%d")
+  
+  write.csv(vietnam_data,"vietnam_data.csv")  
+} else {
+  message('Note, file not found, not regenerating data file')
+}
 
-write.csv(vietnam_data,"vietnam_data.csv")  
+# -----------------
+# Everything below here is old
 
 ########################################
 # Investigating clusters... 
 ########################################
 # North region
-ss <- rawcases  %>% group_by(transmit) %>% filter(Region=="North", Type %in% c("Interregional", "Imported")) %>% count(transmit) 
-hosp <- rawcases %>% filter(Region=="North", Source=="Domestic", Origin %in% c("Bach Mai hospital","Ha Loi")) %>% count() 
+# ss <- rawcases  %>% group_by(transmit) %>% filter(Region=="North", Type %in% c("Interregional", "Imported")) %>% count(transmit) 
+# hosp <- rawcases %>% filter(Region=="North", Source=="Domestic", Origin %in% c("Bach Mai hospital","Ha Loi")) %>% count() 
 
 # South region
 ss <- rawcases  %>% group_by(transmit) %>% filter(Region=="South", Type %in% c("Interregional", "Imported")) %>% count(transmit) 
@@ -194,3 +202,4 @@ ggplot(df, aes(x=date, y=new_diagnoses, fill=Source)) +
 
 fn <- "cases_by_date_source_region.png"
 ggsave(fn, plot = last_plot(), device="png", dpi=300)
+
