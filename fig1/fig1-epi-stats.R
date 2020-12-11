@@ -170,13 +170,28 @@ miles[,y2:=cases+2]
 miles[Region!='National' & nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
 # Final tweaks
+
+# Fig 1B, north
 miles[,milestone:=gsub('Back','Bach',milestone)]
 miles[grep('Vinh Phuc',milestone),x0:=x0+3]
 miles[grep('detected in Bach',milestone),x0:=x0+8]
 miles[grep('Lockdown of Bach',milestone),x0:=x0+2]
 
+# Fig. 1B, central
+miles[grep('Binh Thuan',milestone),y0:=y0-25]
+miles[grep('cluster in Binh Thuan',milestone),x0:=x0-5]
 miles[grep('house blocks, with',milestone),y0:=y0-10]
 
+miles[grep('99 days',milestone), y0:=y0-10]
+miles[grep('Lockdown 3 hosp',milestone),y0:=y0-20]
+miles[grep('Ban on public',milestone),y0:=y0+8]
+miles[grep('Ban on public',milestone),x0:=x0-30]
+miles[grep('city lockdown',milestone),y0:=y0-5]
+miles[grep('lockdown relaxed',milestone),y0:=y0-45]
+
+# Fig. 1C, south
+miles[grep('in a bar in Ho',milestone), x0:=x0-20]
+miles[grep('businesses in HCMC',milestone), x0:=x0+20]
 
 # Milestone colors
 mdefault='#444444'
@@ -304,7 +319,7 @@ p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+
   scale_fill_manual(values=c("#4D4D4D", "#EEAD0E")) +
   milearrow(miles[Region!='National',])+
   miletext(miles[Region!='National',])+#textcol+
-  scale_y_continuous(limits=c(0,65),expand=c(0.01,0))+
+  scale_y_continuous(limits=c(0,60),expand=c(0.01,0))+
   theme(legend.position=c(0.9, 0.95))+
   # remove legend key border color & background
   theme(legend.key = element_rect(colour = NA, fill = NA),
