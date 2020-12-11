@@ -109,7 +109,7 @@ ax = {}
 
 
 # Import files
-filepaths = [f'results/vietnam_sim_{policy}.obj' for policy in ['remain','drop','dynamic']]
+filepaths = [f'results4dec/vietnam_sim_{policy}.obj' for policy in ['remain','drop','dynamic']]
 sims = []
 for fp in filepaths:
     simsfile = sc.loadobj(fp)
@@ -141,15 +141,15 @@ for pn in range(nplots):
 
     if pn in range(ncols):
         plotter('new_diagnoses', sims[(pn%ncols)], ax[pn])
-        ax[pn].set_ylim(0, 150)
-        ax[pn].set_yticks(np.arange(0, 150, 25))
+        ax[pn].set_ylim(0, 70)
+        ax[pn].set_yticks(np.arange(0, 70, 10))
         ax[pn].grid(linestyle=':', linewidth='0.5', color='grey', axis='y')
 #        plt.grid(color='black', which='major', axis='y', linestyle='solid')
     else:
         plotter('n_exposed', sims[(pn%ncols)], ax[pn])
         ax[pn].set_xticklabels([])
-        ax[pn].set_ylim(0, 3000)
-        ax[pn].set_yticks(np.arange(0, 3000, 500))
+        ax[pn].set_ylim(0, 1000)
+        ax[pn].set_yticks(np.arange(0, 1000, 200))
         ax[pn].grid(linestyle=':', linewidth='0.5', color='grey', axis='y')
 
     if (pn%ncols) != 0:
