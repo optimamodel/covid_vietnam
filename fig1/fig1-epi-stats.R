@@ -13,9 +13,6 @@ library(cowplot)
 library(data.table)
 library(scales)
 
-# Set working directory
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
 cat(date(),'\n')
 rm(list=ls())
 

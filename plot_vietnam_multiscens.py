@@ -12,12 +12,12 @@ import matplotlib.ticker as mtick
 
 # Filepaths
 figsfolder = 'figs234'
-resfolder = 'resultstest'
+resfolder = 'results'
 simsfilepath = f'{resfolder}/vietnam_sim.obj'
-today = '2020-12-01'
+borders_open = '2020-12-01'
 
 T = sc.tic()
-thresholds = np.array([0.01048074, 0.02206723, 0.0350389 , 0.04979978, 0.06696701])
+thresholds = np.arange(10,60,10)
 # Import files
 filepaths = [f'{resfolder}/vietnam_sim_{t}.obj' for t in thresholds]
 sims = []
@@ -26,12 +26,12 @@ for fp in filepaths:
     sims.append(simsfile.sims)
 sim = sims[0][0] # Extract a sim to refer to
 
-todayind = sim.day(today)
+borders_open_ind = sim.day(borders_open)
 cuminf = []
 newdiag = []
 for tn,t in enumerate(thresholds):
-    cuminf.append([s.results['cum_infections'].values[-1] - s.results['cum_infections'].values[todayind] for s in sims[tn]])
-    newdiag.append([s.results['new_diagnoses'].values[todayind-14:] for s in sims[tn]])
+    cuminf.append([s.results['cum_infections'].values[-1] - s.results['cum_infections'].values[borders_open_ind] for s in sims[tn]])
+    newdiag.append([s.results['new_diagnoses'].values[borders_open_ind-14:] for s in sims[tn]])
 
 
 # Fonts and sizes
@@ -64,7 +64,7 @@ for pn in range(nplots):
             yarr = np.array(newdiag[tn])
             best = pl.median(yarr, axis=0)
             smoothed = [best[i-14:i].sum()/14 for i in range(14,len(best))]
-            ax[pn].plot(np.arange(len(best)-14), smoothed, lw=4, alpha=1.0, label=f'{(tn+1)*10}% testing')
+            ax[pn].plot(np.arange(len(best)-14), smoothed, lw=4, alpha=1.0, label=f'{t}% testing')
             pl.legend(loc='upper left', frameon=False, fontsize=36)
             ax[pn].set_ylabel('Daily diagnoses (14 day trailing average)')
 
@@ -81,8 +81,8 @@ for pn in range(nplots):
         for tn, t in enumerate(thresholds):
             ax[pn].scatter([(tn+1)*10]*len(cuminf[tn]), cuminf[tn], s=400, c = [[0.4, 0.4, 0.4]], edgecolor='w')
             ax[pn].scatter([(tn+1)*10], [np.median(cuminf[tn])], s=400, c = [[1., 0.8, 0.86]], edgecolor='w')
-        ax[pn].plot([(tn+1)*10 for tn in range(len(thresholds))], [np.median(cuminf[tn]) for tn in range(len(thresholds))], '-', c = [1., 0.8, 0.86], lw=4)
-        ax[pn].set_ylabel('Cumulative infections, 1 Dec 2020 - 1 May 2021')
+        ax[pn].plot([t for t in thresholds], [np.median(cuminf[tn]) for tn in range(len(thresholds))], '-', c = [1., 0.8, 0.86], lw=4)
+        ax[pn].set_ylabel('Cumulative infections, 1 Dec 2020 - 1 Mar 2021')
         ax[pn].set_xlabel('Symptomatic testing rate')
         ax[pn].xaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
 

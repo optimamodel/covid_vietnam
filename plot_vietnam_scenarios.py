@@ -11,9 +11,9 @@ from matplotlib.collections import LineCollection
 
 # Filepaths
 figsfolder = 'figs234'
-resfolder = 'resultstest'
+resfolder = 'results'
 simsfilepath = f'{resfolder}/vietnam_sim.obj'
-today = '2020-12-01'
+borders_open = '2020-12-01'
 
 T = sc.tic()
 

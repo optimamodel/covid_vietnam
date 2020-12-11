@@ -263,7 +263,7 @@ elif whattorun=='testingscens':
         msim.run()
 
         if save_sim:
-            msim.save(f'{resfolder}/vietnam_sim_{sp}.obj')
+            msim.save(f'{resfolder}/vietnam_sim_{(sn+1)*10}.obj')
         if do_plot:
             msim.reduce()
             msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam_{sp}.png',

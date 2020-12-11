@@ -10,7 +10,7 @@ import matplotlib.patches as patches
 # Filepaths
 figsfolder = 'figs234'
 simsfilepath = 'results/vietnam_sim.obj'
-today = '2020-10-15'
+calibration_end = '2020-10-15'
 
 T = sc.tic()
 
@@ -25,7 +25,7 @@ def format_ax(ax, sim, key=None):
     def date_formatter(x, pos):
         return (sim['start_day'] + dt.timedelta(days=x)).strftime('%b')
     ax.xaxis.set_major_formatter(date_formatter)
-    pl.xlim([0, sim.day(today)])
+    pl.xlim([0, sim.day(calibration_end)])
     sc.boxoff()
     return
 
@@ -65,7 +65,7 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
     start = None
     if startday is not None:
         start = sim.day(startday)
-    end = sim.day(today)
+    end = sim.day(calibration_end)
     if flabel:
         if which == 'infections':
             fill_label = '95% projected interval'
@@ -79,14 +79,14 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
     # Print some stats
     if key == 'cum_infections':
         print(f'Estimated {which} on July 25: {best[sim.day("2020-07-25")]} (95%: {low[sim.day("2020-07-25")]}-{high[sim.day("2020-07-25")]})')
-        print(f'Estimated {which} overall: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
+        print(f'Estimated {which} overall: {best[sim.day(calibration_end)]} (95%: {low[sim.day(calibration_end)]}-{high[sim.day(calibration_end)]})')
     elif key=='n_infectious':
-        peakday = sc.findinds(best,max(best))[0]
+        peakday = sc.findnearest(best, max(best))
         peakval = max(best)
         print(f'Estimated peak {which} on {sim.date(peakday)}: {peakval} (95%: {low[peakday]}-{high[peakday]})')
-        print(f'Estimated {which} on last day: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
+        print(f'Estimated {which} on last day: {best[sim.day(calibration_end)]} (95%: {low[sim.day(calibration_end)]}-{high[sim.day(calibration_end)]})')
     elif key=='cum_diagnoses':
-        print(f'Estimated {which} overall: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
+        print(f'Estimated {which} overall: {best[sim.day(calibration_end)]} (95%: {low[sim.day(calibration_end)]}-{high[sim.day(calibration_end)]})')
 
     sc.setylim()
 
