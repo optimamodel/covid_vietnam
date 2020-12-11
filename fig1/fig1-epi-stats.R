@@ -35,18 +35,7 @@ overall=theme(panel.grid.major = element_blank(),panel.grid.minor = element_blan
 blank=guides(fill=guide_legend(title=NULL),color=FALSE)
 textcol=scale_color_manual(values=c('black','red','blue'))
 
-## Plotting utilities
 
-milearrow<-function(dat,grace=-0.,col1='grey60',...) 
-{
-require(ggplot2)
-geom_curve(data=dat,aes( x = x1, y=y1, xend = date, yend = y2,color=factor(colcode)), curvature=grace, arrow = arrow(length = unit(2, "mm")),alpha=0.8,...) 
-}
-miletext<-function(dat,psize=4,colr='black',...) 
-{
-require(ggplot2)
-geom_label(data=dat,aes( x = x0, y = y0, label = milestone,color=factor(colcode)), lineheight = lheight, size=psize,hjust = 0.5,vjust=0.5,...) 
-}
   
 
 ################################################################# Read
@@ -178,13 +167,18 @@ miles[,y2:=cases+2]
 # line breaks
 miles[Region!='National' & nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
+# Milestone colors
+mdefault='#000000'
+mlock='#f0000f'
+mrelax='#00000f'
+
 # differential color for lockdown and reopening?
-miles[,colcode:=1]
-miles[grep('[Ll]ockdown',milestone),colcode:=2]
-miles[grep('Schools closed',milestone),colcode:=2]
-miles[grep('Ban on public',milestone),colcode:=2]
-miles[grep('[Rr]elax',milestone),colcode:=3]
-miles[grep('[Rr]eopen',milestone),colcode:=3]
+miles[,colcode:=mdefault]
+miles[grep('[Ll]ockdown',milestone),colcode:=mlock]
+miles[grep('Schools closed',milestone),colcode:=mlock]
+miles[grep('Ban on public',milestone),colcode:=mlock]
+miles[grep('[Rr]elax',milestone),colcode:=mrelax]
+miles[grep('[Rr]eopen',milestone),colcode:=mrelax]
 
 
 ####################### National plot data
@@ -212,8 +206,8 @@ miles[Region=='National' & nchar(milestone)>0.6*linelength,milestone:=gsub(paste
 
 
 # Adding size...
-miles[,sizefac:=1]
-miles[milestone %in% c('National lockdown','Schools reopen'),sizefac:=bigsize]
+# miles[,sizefac:=1]
+# miles[milestone %in% c('National lockdown','Schools reopen'),sizefac:=bigsize]
 
 #miles[Region=='National' & colcode>1,y0:=55]
 #miles[Region=='National' & grepl('Rural',milestone),y0:=51]
@@ -231,6 +225,20 @@ miles[Region=='National' & grepl('Da Nang',milestone),y0:=60]
 
 ################################################# Plotting
 
+## Plotting utilities
+
+milearrow <- function(dat, grace=-0.,...) {
+  geom_curve(data=dat,
+             aes( x=x1, y=y1, xend=date, yend=y2, color=as.factor(colcode)), 
+             curvature=grace, arrow=arrow(length=unit(2, "mm")), alpha=0.4,...) 
+}
+
+miletext <- function(dat, psize=4,...) {
+  geom_label(data=dat, fill='#eeeeee', alpha=0.8,
+             aes( x=x0, y=y0, label=milestone, color=as.factor(colcode)), 
+             lineheight=lheight, size=psize, hjust=0.5, vjust=0.5,...) 
+}
+
 # Factor between the 2 y axes
 dfac=10# max(national$totcases)/max(national$totdeaths)*0.5 # 0.5 is to make deaths look lower
 tfac=0.95*max(national$totcases)/max(miles$y0[miles$Region=='National'])
@@ -241,18 +249,32 @@ nwid=2
 case_col = '#4D4D99'
 death_col='#800000'
 
+
+
+
+# --------------------------------
+# Plot 1 -- total cases and deaths
 pnat<-ggplot(national, aes(x=refdate))+
+  
+  # Plot cases
+  milearrow(miles[Region=='National',])+
+  miletext(miles[Region=='National',])+
   geom_point(aes(y=totcases),lwd=nwid, col=case_col, alpha=0.5)+
   geom_line(aes(y=totcases),lwd=nwid, col=case_col, alpha=0.2)+
   
+  # Plot deaths
   scale_y_continuous(expand=c(0.01,0.0), sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 deaths"))+
   geom_point(aes(y=dfac*totdeaths),lwd=nwid,col=death_col, alpha=0.5) + 
   geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=death_col, alpha=0.2) + 
+  
+  # Annotate
   ylab("Cumulative confirmed cases")+xlab("") + 
-  geom_label(data=miles[Region=='National',],
-             aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),
-             hjust=0.5,vjust=0.5,lineheight=lheight) + 
-  dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ 
+  # geom_label(data=miles[Region=='National',],
+  #            aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),
+  #            hjust=0.5,vjust=0.5,lineheight=lheight) + 
+  dates(miles)+
+  dates2+
+  textcol+overall+blank+guides(size=FALSE)+
   scale_size(range = 3.5*c(1,bigsize))+
   theme(axis.text.y.left = element_text(color=case_col),axis.title.y.left = element_text(color=case_col),
         axis.line.y.left = element_line(color=case_col),axis.ticks.y.left = element_line(color=case_col))+
@@ -262,22 +284,24 @@ pnat<-ggplot(national, aes(x=refdate))+
 ggsave(pnat,file='output/fig1a.png',height=7,width=14)
 
 
+# -----------------------------
+# Plot 2 -- new cases by region
 p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ 
   geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +
   mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+
   facet_grid(relevel(factor(Region),'Northern')~.) +
   milearrow(miles[Region!='National',])+
-  miletext(miles[Region!='National',])+textcol+
+  miletext(miles[Region!='National',])+#textcol+
   scale_y_continuous(limits=c(0,65),expand=c(0.01,0))
 #+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
 
-p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ 
-  milearrow(miles[Region=='National',])+
-  geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + 
-  dates(miles)+dates2+textcol+blank+
-  scale_y_continuous(limits=c(14,60),expand=c(0,0))+
-  theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
+# p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ 
+#   milearrow(miles[Region=='National',])+
+#   geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + 
+#   dates(miles)+dates2+textcol+blank+
+#   scale_y_continuous(limits=c(14,60),expand=c(0,0))+
+#   theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
 #plot.background = element_rect(fill = "grey90"))
 
 ggsave(p1,file='output/fig1b.png',height=11,width=14)
