@@ -263,7 +263,7 @@ miles[grep('Warning messages',milestone),y0:=y0-25]
 miles[grep('All air travel',milestone),x0:=x0-10]
 miles[grep('Mandatory wearing',milestone),x0:=x0+5]
 miles[grep('Suspend all',milestone),x0:=x0-10]
-miles[grep('Ban on public gathering',milestone),x0:=x0+30]
+miles[grep('and non-essential businesses',milestone),x0:=x0+30]
 miles[grep('Bluezone',milestone),x0:=x0+8]
 
 miles[grep('Non-essential',milestone),y0:=y0-50]
