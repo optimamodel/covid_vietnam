@@ -74,6 +74,8 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
         fill_label = None
     pl.fill_between(tvec[startday:end], low[startday:end], high[startday:end], facecolor=color, alpha=0.2, label=fill_label)
     pl.plot(tvec[startday:end], best[startday:end], c=color, label=label, lw=4, alpha=1.0)
+    #for s in sims:
+    #    pl.plot(tvec[startday:end], s.results[key].values[startday:end], c=[0.4, 0.4, 0.4], label=label, lw=1, alpha=0.7)
 
     #sc.setylim()
 
@@ -141,21 +143,21 @@ for pn in range(nplots):
 
     if pn in range(ncols):
         plotter('new_diagnoses', sims[(pn%ncols)], ax[pn])
-        ax[pn].set_ylim(0, 70)
-        ax[pn].set_yticks(np.arange(0, 70, 10))
+        ax[pn].set_ylim(0, 150)
+        ax[pn].set_yticks(np.arange(0, 150, 25))
         ax[pn].grid(linestyle=':', linewidth='0.5', color='grey', axis='y')
 #        plt.grid(color='black', which='major', axis='y', linestyle='solid')
     else:
         plotter('n_exposed', sims[(pn%ncols)], ax[pn])
         ax[pn].set_xticklabels([])
-        ax[pn].set_ylim(0, 1000)
-        ax[pn].set_yticks(np.arange(0, 1000, 200))
+        ax[pn].set_ylim(0, 3000)
+        ax[pn].set_yticks(np.arange(0, 3000, 500))
         ax[pn].grid(linestyle=':', linewidth='0.5', color='grey', axis='y')
 
     if (pn%ncols) != 0:
         ax[pn].set_yticklabels([])
     else:
-        ax[pn].set_ylabel('Daily diagnoses') if pn == 0 else ax[pn].set_ylabel('Daily infections')
+        ax[pn].set_ylabel('Daily diagnoses') if pn == 0 else ax[pn].set_ylabel('Active infections')
 
 cv.savefig(f'fig2_scenarios.png', dpi=100)
 

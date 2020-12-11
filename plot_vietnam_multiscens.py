@@ -8,15 +8,17 @@ import datetime as dt
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+import matplotlib.ticker as mtick
 
 # Filepaths
 figsfolder = 'figs'
 today = '2020-11-15'
 
 T = sc.tic()
-thresholds = np.arange(10,50,10)
+#thresholds = np.arange(10,50,10)
+thresholds = np.array([0.01048074, 0.02206723, 0.0350389 , 0.04979978, 0.06696701])
 # Import files
-filepaths = [f'vietnam_sim_{t}.obj' for t in thresholds] + [f'vietnam_sim_{t}.obj' for t in thresholds]
+filepaths = [f'vietnam_sim_{t}.obj' for t in thresholds]
 sims = []
 for fp in filepaths:
     simsfile = sc.loadobj(fp)
@@ -62,9 +64,9 @@ for pn in range(nplots):
             best = pl.median(yarr, axis=0)
             #best = np.max(yarr, axis=0)
             smoothed = [best[i-14:i].sum()/14 for i in range(14,len(best))]
-            ax[pn].plot(np.arange(len(best)-14), smoothed, lw=4, alpha=1.0, label=f'Adapt after {t} cases')
+            ax[pn].plot(np.arange(len(best)-14), smoothed, lw=4, alpha=1.0, label=f'{(tn+1)*10}% testing')
             pl.legend(loc='upper left', frameon=False, fontsize=36)
-            ax[pn].set_ylabel('Daily infections (14 day trailing average)')
+            ax[pn].set_ylabel('Daily diagnoses (14 day trailing average)')
 
         @ticker.FuncFormatter
         def date_formatter(x, pos):
@@ -77,11 +79,12 @@ for pn in range(nplots):
 
     if pn==1:
         for tn, t in enumerate(thresholds):
-            ax[pn].scatter([t]*len(cumdiag[tn]), cumdiag[tn], s=400, c = [[0.4, 0.4, 0.4]], edgecolor='w')
-            ax[pn].scatter([t], [np.median(cumdiag[tn])], s=400, c = [[1., 0.8, 0.86]], edgecolor='w')
-        ax[pn].plot(thresholds, [np.median(cumdiag[tn]) for tn in range(len(thresholds))], '-', c = [1., 0.8, 0.86], lw=4)
-        ax[pn].set_ylabel('Cumulative diagnoses, 15 Nov 2020 - 1 Mar 2021')
-        ax[pn].set_xlabel('Number of daily cases before behavior changes')
+            ax[pn].scatter([(tn+1)*10]*len(cumdiag[tn]), cumdiag[tn], s=400, c = [[0.4, 0.4, 0.4]], edgecolor='w')
+            ax[pn].scatter([(tn+1)*10], [np.median(cumdiag[tn])], s=400, c = [[1., 0.8, 0.86]], edgecolor='w')
+        ax[pn].plot([(tn+1)*10 for tn in range(len(thresholds))], [np.median(cumdiag[tn]) for tn in range(len(thresholds))], '-', c = [1., 0.8, 0.86], lw=4)
+        ax[pn].set_ylabel('Cumulative infections, 1 Dec 2020 - 1 Mar 2021')
+        ax[pn].set_xlabel('Symptomatic testing rate')
+        ax[pn].xaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
 
 cv.savefig(f'fig3_multiscenss.png', dpi=100)
 

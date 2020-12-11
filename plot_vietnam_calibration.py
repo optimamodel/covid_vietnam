@@ -9,8 +9,8 @@ import matplotlib.patches as patches
 
 # Filepaths
 figsfolder = 'figs'
-simsfilepath = 'vietnam_sim.obj'
-today = '2020-10-05'
+simsfilepath = 'vietnam_sim_nomasks.obj'
+today = '2020-10-15'
 
 T = sc.tic()
 
@@ -80,9 +80,12 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
         print(f'Estimated {which} on July 25: {best[sim.day("2020-07-25")]} (95%: {low[sim.day("2020-07-25")]}-{high[sim.day("2020-07-25")]})')
         print(f'Estimated {which} overall: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
     elif key=='n_infectious':
-        peakday = sc.findinds(best,max(best))
+        peakday = sc.findinds(best,max(best))[0]
         peakval = max(best)
-        print(f'Estimated peak {which} on {sim.date(peakday[0])}: {peakval} (95%: {low[peakday]}-{high[peakday]})')
+        print(f'Estimated peak {which} on {sim.date(peakday)}: {peakval} (95%: {low[peakday]}-{high[peakday]})')
+        print(f'Estimated {which} on last day: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
+    elif key=='cum_diagnoses':
+        print(f'Estimated {which} overall: {best[sim.day(today)]} (95%: {low[sim.day(today)]}-{high[sim.day(today)]})')
 
     sc.setylim()
 
@@ -109,7 +112,7 @@ def plot_intervs(sim, labels=True):
     if labels:
         yl = pl.ylim()
         labely = yl[1]*0.85
-        pl.text(jul25-17, labely, 'Danang\noutbreak', color=color, alpha=0.9, style='italic')
+        pl.text(jul25-17, labely, 'Da Nang\noutbreak', color=color, alpha=0.9, style='italic')
         pl.text(sim.day('2020-09-05')-15, labely, 'Work\nreopens', color=color, alpha=0.9, style='italic')
         pl.text(sim.day('2020-09-14') + 2, labely, 'School\nreopens', color=color, alpha=0.9, style='italic')
     return
@@ -167,6 +170,6 @@ plotter('cum_deaths', sims, ax[3], calib=True, label='Deaths\n(modelled)', ylabe
 pl.legend(loc='upper left', frameon=False)
 #pl.ylim([0, 10e3])
 
-cv.savefig(f'fig1_calibration.png', dpi=100)
+cv.savefig(f'fig1_calibration_nomasks.png', dpi=100)
 
 sc.toc(T)
