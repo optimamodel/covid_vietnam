@@ -1,5 +1,6 @@
 ########################################
-# Script for generating Fig. 1 of the manuscript
+# Script for generating Fig. 1 of the manuscript, statistics on case counts by 
+# region in Vietnam
 #
 # Date last modified: Dec 10, 2020
 ########################################
@@ -50,42 +51,42 @@ geom_label(data=dat,aes( x = x0, y = y0, label = milestone,color=factor(colcode)
 
 ################################################################# Read
 
-quang=fread('./data/Case and close contact list_Updates_22Sep2020.csv',skip=6)
-provinces=fread('./data/vietProvinces.csv')
-miles=fread('./data/Milestones_updates_Revised_4.csv')
+casedata=fread('data/Case-and-close-contact-list_Updates_22Sep2020.csv',skip=6)
+provinces=fread('data/vietProvinces.csv')
+miles=fread('data/Milestones_updates_Revised_4.csv')
 
-#quang[,CaseID:=as.integer(gsub('NB','',CaseID))]
+#casedata[,CaseID:=as.integer(gsub('NB','',CaseID))]
 
 ## Imported vs. Domestic, cognizant of typos ;)
-quang[,domestic:=grepl('D',Case_cat)]
+casedata[,domestic:=grepl('D',Case_cat)]
 
-#quang[,Gender:=tolower(Gender)]
-#setkey(quang,CaseID)
+#casedata[,Gender:=tolower(Gender)]
+#setkey(casedata,CaseID)
 
 #### Regions!
 provinces[,Province:=toTitleCase(Province)]
-quang[,Province:=toTitleCase(Province)]
-quang[,Region:=provinces$Region[match(Province,provinces$Province)]]
+casedata[,Province:=toTitleCase(Province)]
+casedata[,Region:=provinces$Region[match(Province,provinces$Province)]]
 
 # Errata etc.
-quang[Province %in% c('Hanoi','Bac Can'),Region:='North']
-quang[Province %in% c('TPHCM','BR-VT'),Region:='South']
-quang[Province %in% c('Da Nang','Quang Tri'),Region:='Central']
-quang[Province %in% c('Daklak'),Region:='Highland']
+casedata[Province %in% c('Hanoi','Bac Can'),Region:='North']
+casedata[Province %in% c('TPHCM','BR-VT'),Region:='South']
+casedata[Province %in% c('Da Nang','casedata Tri'),Region:='Central']
+casedata[Province %in% c('Daklak'),Region:='Highland']
 
 # Current region name conventions:
-quang[,Region:=gsub('North','Northern',Region)]
-quang[,Region:=gsub('South','Southern',Region)]
+casedata[,Region:=gsub('North','Northern',Region)]
+casedata[,Region:=gsub('South','Southern',Region)]
 
 ### other cleaning
 # date mess (some American, some old-world)
-quang[,dxdate:=as.Date(diagdate,'%m/%d/%Y')]
-quang[is.na(dxdate),dxdate:=as.Date(diagdate,'%d/%m/%Y')]
+casedata[,dxdate:=as.Date(diagdate,'%m/%d/%Y')]
+casedata[is.na(dxdate),dxdate:=as.Date(diagdate,'%d/%m/%Y')]
 
-#fwrite(quang,file=paste('./output/VietnamLine',dim(quang)[1],'.csv',sep=''))
+#fwrite(casedata,file=paste('output/VietnamLine',dim(casedata)[1],'.csv',sep=''))
 
 # Epi curve dataset format
-vietnamEpi=quang[Region!='Highland',list(newcases=.N),keyby=.(dxdate,Region,domestic)]
+vietnamEpi=casedata[Region!='Highland',list(newcases=.N),keyby=.(dxdate,Region,domestic)]
 
 ########################################## Milestone label prep
 
@@ -189,12 +190,12 @@ miles[grep('[Rr]eopen',milestone),colcode:=3]
 ####################### National plot data
 
 ### National cumulatives
-cumuls=quang[,list(newcases=.N),keyby='dxdate']
+cumuls=casedata[,list(newcases=.N),keyby='dxdate']
 cumuls[,totcases:=cumsum(newcases)]
 # Deaths
-quang[,deathdate:=gsub('29[-]08[-][-]20','8/29/2020',Dead)]
-quang[,deathdate:=as.Date(deathdate,'%m/%d/%Y')]
-deaths=quang[!is.na(deathdate),list(newdeaths=.N),keyby='deathdate']
+casedata[,deathdate:=gsub('29[-]08[-][-]20','8/29/2020',Dead)]
+casedata[,deathdate:=as.Date(deathdate,'%m/%d/%Y')]
+deaths=casedata[!is.na(deathdate),list(newdeaths=.N),keyby='deathdate']
 
 # Merging cases and deaths into a complete timeline with no missing days
 national=cumuls[,list(refdate=seq(dxdate[1],max(miles$date),by=1))]
@@ -239,27 +240,48 @@ miles[Region=='National',c('y0','y1'):=list(tfac*y0,tfac*y1)]
 nwid=2
 dcol='maroon'
 
-pnat<-ggplot(national,aes(x=refdate))+geom_line(aes(y=totcases),lwd=nwid)+scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + ylab("Cumulative Confirmed Cases")+xlab("") + geom_label(data=miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),hjust=0.5,vjust=0.5,lineheight=lheight) + dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ scale_size(range = 3.5*c(1,bigsize))+theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
+pnat<-ggplot(national, aes(x=refdate))+
+  geom_line(aes(y=totcases),lwd=nwid)+
+  scale_y_continuous(sec.axis=sec_axis(trans=~./dfac,name="Cumulative COVID-19 Deaths"))+
+  geom_line(aes(y=dfac*totdeaths),lwd=nwid,col=dcol) + 
+  ylab("Cumulative Confirmed Cases")+xlab("") + 
+  geom_label(data=miles[Region=='National',],
+             aes(label=milestone,x=x0,y=y0,color=factor(colcode),size=sizefac),
+             hjust=0.5,vjust=0.5,lineheight=lheight) + 
+  dates(miles)+dates2+textcol+overall+blank+guides(size=FALSE)+ 
+  scale_size(range = 3.5*c(1,bigsize))+
+  theme(axis.text.y.right = element_text(color=dcol),axis.title.y.right = element_text(color=dcol),
+        axis.line.y.right = element_line(color=dcol),axis.ticks.y.right = element_line(color=dcol))
 
-ggsave(pnat,file='./output/paperPlot1a.png',height=7,width=14)
+ggsave(pnat,file='output/fig1a.png',height=7,width=14)
 
 
-p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+facet_grid(relevel(factor(Region),'Northern')~.) +milearrow(miles[Region!='National',])+miletext(miles[Region!='National',])+textcol
+p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+ 
+  geom_col(width=1,aes(fill=factor(domestic,labels=c('Imported','Domestic')))) +
+  mycols+yname+dates(miles)+dates2+xlab('')+overall+blank+
+  facet_grid(relevel(factor(Region),'Northern')~.) +
+  milearrow(miles[Region!='National',])+
+  miletext(miles[Region!='National',])+textcol
 #+theme(plot.margin=unit(c(.002,.002,-0.03,.002),"npc"))
 
 
-p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ milearrow(miles[Region=='National',])+geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + dates(miles)+dates2+textcol+blank+scale_y_continuous(limits=c(14,60),expand=c(0,0))+theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
+p2<-ggplot(miles[Region=='National',],aes(label=milestone,x=x0,y=y0,color=factor(colcode)))+ 
+  milearrow(miles[Region=='National',])+
+  geom_label(hjust=0.5,vjust=0.5,size=3.5,lineheight=lheight)  + 
+  dates(miles)+dates2+textcol+blank+
+  scale_y_continuous(limits=c(14,60),expand=c(0,0))+
+  theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
 #plot.background = element_rect(fill = "grey90"))
 
-ggsave(p1,file='./output/paperPlot1b.png',height=11,width=14)
-#ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='./output/paperPlot1.png',height=13,width=15)
-#ggsave(ggarrange(p1,p2,heights=c(3.5,1),padding=0,align='v'),file='./output/paperPlot1.png',height=13,width=15)
+ggsave(p1,file='output/fig1b.png',height=11,width=14)
+#ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='output/paperPlot1.png',height=13,width=15)
+#ggsave(ggarrange(p1,p2,heights=c(3.5,1),padding=0,align='v'),file='output/paperPlot1.png',height=13,width=15)
 
 
 cat(date(),'\n')
 
 
 
-# save.image('./output/paperPlots.RData')
+# save.image('output/paperPlots.RData')
 
 
