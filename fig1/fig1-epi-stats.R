@@ -170,9 +170,9 @@ miles[,y2:=cases+2]
 miles[Region!='National' & nchar(milestone)>linelength,milestone:=gsub(paste('(.{',linelength,'})(\\s)',sep=''), '\\1\n',milestone)]
 
 # Milestone colors
-mdefault='#000000'
-mlock='#f0000f'
-mrelax='#00000f'
+mdefault='#444444'
+mlock='#dd5522'
+mrelax='#008822'
 
 # differential color for lockdown and reopening?
 miles[,colcode:=mdefault]
@@ -230,14 +230,14 @@ miles[Region=='National' & grepl('Da Nang',milestone),y0:=50]
 ## Plotting utilities
 
 milearrow <- function(dat, grace=-0.,...) {
-  geom_curve(data=dat,
-             aes( x=x1, y=y1, xend=date, yend=y2, color=as.factor(colcode)), 
+  geom_curve(data=dat, color=dat$colcode,
+             aes( x=x1, y=y1, xend=date, yend=y2), 
              curvature=grace, arrow=arrow(length=unit(2, "mm")), alpha=0.4,...) 
 }
 
 miletext <- function(dat, psize=4,...) {
-  geom_label(data=dat, fill='#eeeeee', alpha=0.8,
-             aes( x=x0, y=y0, label=milestone, color=as.factor(colcode)), 
+  geom_label(data=dat, fill='#eeeeee', alpha=0.8, label.size=0, color=dat$colcode,
+             aes( x=x0, y=y0, label=milestone), 
              lineheight=lheight, size=psize, hjust=0.5, vjust=0.5,...) 
 }
 
