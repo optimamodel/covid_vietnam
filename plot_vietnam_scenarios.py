@@ -25,7 +25,7 @@ def format_ax(ax, sim, key=None):
     def date_formatter(x, pos):
         return (sim['start_day'] + dt.timedelta(days=x)).strftime('%b-%y')
     ax.xaxis.set_major_formatter(date_formatter)
-    pl.xlim([0, sim['n_days']-30])
+    pl.xlim([0, sim['n_days']])
     return
 
 def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.025, high_q=0.975, flabel=True, startday=None, subsample=2, chooseseed=None):
@@ -79,7 +79,7 @@ def plotter(key, sims, ax, ys=None, calib=False, label='', ylabel='', low_q=0.02
 
     #sc.setylim()
 
-    datemarks = pl.array([sim.day('2020-07-01'),sim.day('2020-09-01'),sim.day('2020-11-01'),sim.day('2021-01-01'),sim.day('2021-03-01')])*1.
+    datemarks = pl.array([sim.day('2020-07-01'),sim.day('2020-09-01'),sim.day('2020-11-01'),sim.day('2021-01-01')])*1.
     ax.set_xticks(datemarks)
 
     pl.ylabel(ylabel)

@@ -88,4 +88,7 @@ for pn in range(nplots):
 
 cv.savefig(f'{figsfolder}/fig4_multiscens.png', dpi=100)
 
+print([np.median(cuminf[tn]) for tn in range(len(thresholds))])
+print([np.quantile(cuminf[tn],q=0.025) for tn in range(len(thresholds))])
+print([np.quantile(cuminf[tn],q=0.975) for tn in range(len(thresholds))])
 sc.toc(T)

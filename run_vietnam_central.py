@@ -23,16 +23,16 @@ runoptions = ['quickfit', # Does a quick preliminary calibration. Quick to run, 
               'finialisecalibration', # Filters the 10,000 runs from the previous step, selects the best-fitting ones, and runs these. Creates a file "vietnam_sim.obj" used by plot_vietnam_calibration for Figure 2
               'mainscens', # Takes the best-fitting runs and projects these forward under different border-reopening scenarios. Creates files "vietnam_sim_drop.obj", "vietnam_sim_remain.obj" and "vietnam_sim_dynamic.obj" used by plot_vietnam_scenarios for Figure 3
               'testingscens'] # Takes the best-fitting runs and projects these forward under different testing scenarios. Creates files "vietnam_sim_{XXX}.obj" used by plot_vietnam_multiscens for Figure 4
-whattorun = runoptions[4] #Select which of the above to run
+whattorun = runoptions[2] #Select which of the above to run
 
 # Settings for plotting and saving
 do_plot = True
 do_save = True
 save_sim = True
-keep_people = False
+keep_people = True
 n_runs = 500
 today = '2020-10-15'
-resfolder = 'resultstest'
+resfolder = 'results'
 
 to_plot = sc.objdict({
     'Cumulative diagnoses': ['cum_diagnoses'],
@@ -198,11 +198,57 @@ elif whattorun=='finialisecalibration':
                 sim['rand_seed'] = seed
                 sim.set_seed()
                 sims.append(sim)
+
     msim = cv.MultiSim(sims)
     msim.run(keep_people=keep_people)
 
+    if keep_people:
+        prop_asymp = []
+        prop_asymp_asymp = []
+        for sim in msim.sims:
+            tt = sim.make_transtree()
+            asymp_count = 0
+            symp_counts = {}
+            asymp_asymp_count = 0
+            minind = -5
+            maxind = 15
+            for _, target_ind in tt.transmissions:
+                dd = tt.detailed[target_ind]
+                date = dd['date']
+                delta = sim.rescale_vec[date] # Increment counts by this much
+                if dd['s']: # If there's a source of the infection (i.e. don't count seed infections)
+
+                    # Loop over all undiagnosed infections after July 25
+                    if tt.detailed[dd['source']]['date'] <= date and tt.detailed[dd['source']]['date'] >= 40 and np.isnan(dd['t']['date_diagnosed']):
+
+                        # Find what date the target was symptomatic
+                        tdate = dd['t']['date_symptomatic']
+
+                        # First, count all the asymptomatic undiagnosed infections
+                        if np.isnan(tdate):
+                            asymp_count += delta
+                        else:
+                            ind = int(date - tdate)
+                            if ind not in symp_counts:
+                                symp_counts[ind] = 0
+                            symp_counts[ind] += delta
+
+                        # Second, count all the asymptomatic undiagnosed infections where the source was also asymptomatic
+                        if np.isnan(dd['s']['date_symptomatic']):
+                            asymp_asymp_count += delta
+
+            prop_asymp.append(asymp_count / (asymp_count + sum(symp_counts.values())))
+            prop_asymp_asymp.append(asymp_asymp_count / asymp_count)
+
+        print(np.median(prop_asymp))
+        print(np.quantile(prop_asymp, q=0.025))
+        print(np.quantile(prop_asymp, q=0.975))
+        print(np.median(prop_asymp_asymp))
+        print(np.quantile(prop_asymp_asymp, q=0.025))
+        print(np.quantile(prop_asymp_asymp, q=0.975))
+
     if save_sim:
-        msim.save(f'{resfolder}/vietnam_sim.obj', keep_people=keep_people)
+        msim.save(f'{resfolder}/vietnam_sim.obj')
     if do_plot:
         msim.reduce()
         msim.plot(to_plot=to_plot, do_save=do_save, do_show=False, fig_path=f'vietnam.png',
