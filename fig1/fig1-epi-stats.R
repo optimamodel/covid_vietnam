@@ -330,7 +330,7 @@ pnat<-ggplot(national, aes(x=refdate))+
   theme(axis.text.y.right = element_text(color=death_col),axis.title.y.right = element_text(color=death_col),
         axis.line.y.right = element_line(color=death_col),axis.ticks.y.right = element_line(color=death_col))
 
-ggsave(pnat,file='output/fig1a.png',height=7,width=14)
+ggsave(pnat,file='output/fig1a.pdf',height=7,width=14)
 
 
 # -----------------------------
@@ -358,7 +358,7 @@ p1<-ggplot(vietnamEpi,aes(x=dxdate,y=newcases))+
 #   theme_void()+theme(plot.margin=unit(c(0,.2,.2,0.2),"cm"))
 #plot.background = element_rect(fill = "grey90"))
 
-ggsave(p1,file='output/fig1b.png',height=11,width=14)
+ggsave(p1,file='output/fig1b.pdf',height=11,width=14)
 #ggsave(plot_grid(p1,p2,rel_heights=c(3.5,1),align='v',axis='rl',ncol=1),file='output/paperPlot1.png',height=13,width=15)
 #ggsave(ggarrange(p1,p2,heights=c(3.5,1),padding=0,align='v'),file='output/paperPlot1.png',height=13,width=15)
 
@@ -367,8 +367,7 @@ g = plot_grid(pnat, p1,
               rel_heights = c(7,11),
               label_size=24, ncol=1)
 
-ggsave(g,file='output/fig1.png', height=19, width=14)
-
+ggsave(g,file='output/fig1.pdf', height=19, width=14)
 
 
 # save.image('output/paperPlots.RData')

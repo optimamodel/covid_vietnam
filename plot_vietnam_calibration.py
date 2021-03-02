@@ -114,7 +114,7 @@ def plot_intervs(sim, labels=True):
         yl = pl.ylim()
         labely = yl[1]*0.85
         pl.text(jul25-20, labely, 'Da Nang\noutbreak', color=color, alpha=0.9, style='italic')
-        pl.text(sim.day('2020-09-05')-15, labely, 'Work\nreopens', color=color, alpha=0.9, style='italic')
+        pl.text(sim.day('2020-09-05')-17, labely, 'Work\nreopens', color=color, alpha=0.9, style='italic')
         pl.text(sim.day('2020-09-14') + 2, labely, 'School\nreopens', color=color, alpha=0.9, style='italic')
     return
 
@@ -153,24 +153,24 @@ plot_intervs(sim)
 # b. cumulative diagnoses
 ax[1] = pl.axes([xgapl+xgapm+dx1, ygapb+ygapm+dy, dx2, dy])
 format_ax(ax[1], sim)
-plotter('cum_diagnoses', sims, ax[1], calib=True, label='Diagnoses\n(modelled)', ylabel='Cumulative diagnoses', flabel=False)
+plotter('cum_diagnoses', sims, ax[1], calib=True, label='Diagnoses\n(modeled)', ylabel='Cumulative diagnoses', flabel=False)
 pl.legend(loc='upper left', frameon=False)
 #pl.ylim([0, 10e3])
 
 # c. cumulative and active infections
 ax[2] = pl.axes([xgapl, ygapb, dx1, dy])
 format_ax(ax[2], sim)
-plotter('cum_infections', sims, ax[2], calib=True, label='Cumulative infections (modelled)', ylabel='', flabel=False)
-plotter('n_infectious', sims, ax[2], calib=True, label='Active infections (modelled)', ylabel='Estimated infections', flabel=False)
+plotter('cum_infections', sims, ax[2], calib=True, label='Cumulative infections\n(modeled)', ylabel='', flabel=False)
+plotter('n_infectious', sims, ax[2], calib=True, label='Active infections\n(modeled)', ylabel='Estimated infections', flabel=False)
 pl.legend(loc='upper left', frameon=False)
 
 # d. cumulative deaths
 ax[3] = pl.axes([xgapl+xgapm+dx1, ygapb, dx2, dy])
 format_ax(ax[3], sim)
-plotter('cum_deaths', sims, ax[3], calib=True, label='Deaths\n(modelled)', ylabel='Cumulative deaths', flabel=False)
+plotter('cum_deaths', sims, ax[3], calib=True, label='Deaths\n(modeled)', ylabel='Cumulative deaths', flabel=False)
 pl.legend(loc='upper left', frameon=False)
 #pl.ylim([0, 10e3])
 
-cv.savefig(f'{figsfolder}/fig2_calibration.png', dpi=100)
+cv.savefig(f'{figsfolder}/fig2_calibration.pdf')
 
 sc.toc(T)

@@ -9,6 +9,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import matplotlib.ticker as mtick
+import seaborn as sns
 
 # Filepaths
 figsfolder = 'figs234'
@@ -48,13 +49,21 @@ xgapm = 0.1
 xgapr = 0.015
 ygapb = 0.1
 ygapm = 0.02
-ygapt = 0.06
+ygapt = 0.075
 nrows = 1
 ncols = 2
 dx = (1 - (ncols - 1) * xgapm - xgapl - xgapr) / ncols
 dy = (1 - (nrows - 1) * ygapm - ygapb - ygapt) / nrows
 nplots = nrows * ncols
 ax = {}
+
+pl.figtext(xgapl*0.5,           ygapb + dy, 'A', fontweight='bold', fontsize=45)
+pl.figtext(xgapl*0.5+xgapm+dx,  ygapb + dy, 'B', fontweight='bold', fontsize=45)
+
+# Set up a dataframe for seaborn plotting
+labels = [f'{t}%' for t in thresholds]
+df = pd.DataFrame(np.array(cuminf).T, columns=labels)
+df2 = df.melt()
 
 for pn in range(nplots):
     ax[pn] = pl.axes([xgapl + (dx + xgapm) * (pn % ncols), ygapb + (ygapm + dy) * (pn // ncols), dx, dy])
@@ -78,15 +87,14 @@ for pn in range(nplots):
         ax[pn].set_xticks(datemarks)
 
     if pn==1:
-        for tn, t in enumerate(thresholds):
-            ax[pn].scatter([(tn+1)*10]*len(cuminf[tn]), cuminf[tn], s=400, c = [[0.4, 0.4, 0.4]], edgecolor='w')
-            ax[pn].scatter([(tn+1)*10], [np.median(cuminf[tn])], s=400, c = [[1., 0.8, 0.86]], edgecolor='w')
-        ax[pn].plot([t for t in thresholds], [np.median(cuminf[tn]) for tn in range(len(thresholds))], '-', c = [1., 0.8, 0.86], lw=4)
+        ax[pn] = sns.swarmplot(x="variable", y="value", data=df2, color="grey", alpha=0.5)
+        ax[pn] = sns.violinplot(x="variable", y="value", data=df2, color ="lightblue", alpha=0.5, inner=None)
+        ax[pn] = sns.pointplot(x="variable", y="value", data=df2, ci=None, color ="steelblue", markers='D', scale = 1.2)
+
         ax[pn].set_ylabel('Cumulative infections, 1 Dec 2020 - 1 Mar 2021')
         ax[pn].set_xlabel('Symptomatic testing rate')
-        ax[pn].xaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
 
-cv.savefig(f'{figsfolder}/fig4_multiscens.png', dpi=100)
+cv.savefig(f'{figsfolder}/fig4_multiscens.pdf')
 
 print([np.median(cuminf[tn]) for tn in range(len(thresholds))])
 print([np.quantile(cuminf[tn],q=0.025) for tn in range(len(thresholds))])

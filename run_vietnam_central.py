@@ -19,11 +19,12 @@ cv.check_save_version()
 
 # Define what to run. All analyses are contained in this single script; the idea if that these should be run sequentially
 runoptions = ['quickfit', # Does a quick preliminary calibration. Quick to run, ~30s
+              'plotpeople', # Plots the people
               'fitting',  # Searches over parameters and seeds (10,000 runs) and calculates the mismatch for each. Slow to run: ~1hr on Athena
               'finialisecalibration', # Filters the 10,000 runs from the previous step, selects the best-fitting ones, and runs these. Creates a file "vietnam_sim.obj" used by plot_vietnam_calibration for Figure 2
               'mainscens', # Takes the best-fitting runs and projects these forward under different border-reopening scenarios. Creates files "vietnam_sim_drop.obj", "vietnam_sim_remain.obj" and "vietnam_sim_dynamic.obj" used by plot_vietnam_scenarios for Figure 3
               'testingscens'] # Takes the best-fitting runs and projects these forward under different testing scenarios. Creates files "vietnam_sim_{XXX}.obj" used by plot_vietnam_multiscens for Figure 4
-whattorun = runoptions[2] #Select which of the above to run
+whattorun = runoptions[1] #Select which of the above to run
 
 # Settings for plotting and saving
 do_plot = True
@@ -158,6 +159,10 @@ if whattorun=='quickfit':
         msim.plot(to_plot=to_plot, do_save=True, do_show=False, fig_path=f'vietnam.png',
                   legend_args={'loc': 'upper left'}, axis_args={'hspace': 0.4}, interval=21)
 
+# Quick calibration
+if whattorun=='plotpeople':
+    sim = make_sim(seed=1, beta=0.0135, change=0.42, end_day=today)
+    sim.people.plot(do_show=False, do_save=True, fig_path='figs234/figS1_people.pdf')
 
 # Full parameter/seed search
 elif whattorun=='fitting':

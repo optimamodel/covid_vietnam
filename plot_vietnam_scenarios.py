@@ -159,7 +159,7 @@ for pn in range(nplots):
     else:
         ax[pn].set_ylabel('Daily diagnoses') if pn == 0 else ax[pn].set_ylabel('Active infections')
 
-cv.savefig(f'{figsfolder}/fig3_scenarios.png', dpi=100)
+cv.savefig(f'{figsfolder}/fig3_scenarios.pdf')
 
 
 sc.toc(T)
