@@ -1,6 +1,6 @@
 # Analysis of COVID-19 transmission in Vietnam
 
-This repository contains the code and data for the manuscript "Lessons learned from Vietnam's COVID-19 response: the role of adaptive behaviour change in epidemic control". Manuscript: https://docs.google.com/document/d/10keNKv5IGNPpT0BD05aidIusdt4J8gNQun7M69p-4-o/edit?usp=sharing
+This repository contains the code and data for the manuscript "Lessons learned from Vietnam's COVID-19 response: the role of adaptive behaviour change in epidemic control". Manuscript: https://doi.org/10.1101/2020.12.18.20248454
 
 ## Usage
 
