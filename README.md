@@ -2,6 +2,14 @@
 
 This repository contains the code and data for the manuscript "Lessons learned from Vietnam's COVID-19 response: the role of adaptive behaviour change in epidemic control". Manuscript: https://doi.org/10.1101/2020.12.18.20248454
 
+## Installation
+
+1. Clone this repository (https://github.com/optimamodel/covid_vietnam) into one folder.
+2. Clone Covasim (https://github.com/institutefordiseasemodeling/covasim) into another folder. (Note: because the scripts require a particular version, you cannot use Covasim as installed by pip.)
+3. Change to the `vietnam_lancetgh` tag: `git checkout vietnam_lancetgh`. If this command succeeded, you should see `HEAD is now at e9afde91 fix intervention conflicts`.
+4. Install Covasim with `pip install -e .`.
+5. You should now be ready to run the scripts in this repository.
+
 ## Usage
 
 1. The files for generating Figure 1 are in the fig1 folder. Figure 1 can be created by running `fig1-epi-stats.R`. This will save a file called `output/fig1.png`.

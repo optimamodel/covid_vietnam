@@ -19,12 +19,12 @@ cv.check_save_version()
 
 # Define what to run. All analyses are contained in this single script; the idea if that these should be run sequentially
 runoptions = ['quickfit', # Does a quick preliminary calibration. Quick to run, ~30s
-              'plotpeople', # Plots the people
+              'plotpeople', # Plots the people -- not currently implemented
               'fitting',  # Searches over parameters and seeds (10,000 runs) and calculates the mismatch for each. Slow to run: ~1hr on Athena
               'finialisecalibration', # Filters the 10,000 runs from the previous step, selects the best-fitting ones, and runs these. Creates a file "vietnam_sim.obj" used by plot_vietnam_calibration for Figure 2
               'mainscens', # Takes the best-fitting runs and projects these forward under different border-reopening scenarios. Creates files "vietnam_sim_drop.obj", "vietnam_sim_remain.obj" and "vietnam_sim_dynamic.obj" used by plot_vietnam_scenarios for Figure 3
               'testingscens'] # Takes the best-fitting runs and projects these forward under different testing scenarios. Creates files "vietnam_sim_{XXX}.obj" used by plot_vietnam_multiscens for Figure 4
-whattorun = runoptions[1] #Select which of the above to run
+whattorun = runoptions[0] #Select which of the above to run
 
 # Settings for plotting and saving
 do_plot = True
